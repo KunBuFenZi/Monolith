@@ -40,12 +40,10 @@ export function AdminBackup() {
 
   useEffect(() => {
     document.title = "备份管理 | Monolith";
-    checkAuth().then((ok) => {
-      if (!ok) { setLocation("/admin/login"); return; }
-      loadR2Backups();
-      loadWebdavConfig();
-    });
-  }, [setLocation]);
+    loadR2Backups();
+    loadWebdavConfig();
+  }, []);
+
 
   const showMsg = useCallback((text: string, type: "success" | "error") => {
     setMessage({ text, type });
@@ -109,24 +107,24 @@ export function AdminBackup() {
   };
 
   const restoreFromR2 = async (name: string) => {
-    if (!confirm(`确定从「${name}」恢复？模式: ${restoreMode === "merge" ? "合并（保留已有数据）" : "覆盖（更新已有数据）"}`)) return;
+    if (!confirm(`确定从「${name}」恢复数据？\n模式: ${restoreMode === "merge" ? "合并（跳过已有文章）" : "覆盖（更新已有文章）"}\n\n此操作不可撤销，建议先备份当前数据！`)) return;
     setRestoring(true);
     try {
-      // 先获取备份内容
-      const exportRes = await fetch("/api/admin/backup/r2-preview", {
-        method: "POST", headers: jsonHeaders, body: JSON.stringify({ name }),
+      const res = await fetch("/api/admin/backup/r2-restore", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ name, mode: restoreMode }),
       });
-      const previewData = await exportRes.json();
-      if (previewData.error) { showMsg(previewData.error, "error"); setRestoring(false); return; }
-
-      // 获取完整备份数据 - 通过导出再恢复
-      const listRes = await fetch("/api/admin/backup/export", { headers: authHeaders });
-      // 实际上需要从 R2 读取完整数据来恢复
-      // 简化：使用 export 拿到当前数据格式，然后通过 r2-preview 对比
-      showMsg(`备份包含 ${previewData.postCount} 篇文章、${previewData.tagCount} 个标签`, "success");
-    } catch { showMsg("恢复失败", "error"); }
+      const data = await res.json();
+      if (data.success) {
+        showMsg(`恢复完成：导入 ${data.imported.posts} 篇文章、${data.imported.tags} 个标签`, "success");
+      } else {
+        showMsg(data.error || "恢复失败", "error");
+      }
+    } catch { showMsg("恢复请求失败，请检查网络连接", "error"); }
     setRestoring(false);
   };
+
 
   // ─── 本地下载 ───
   const downloadLocal = async () => {

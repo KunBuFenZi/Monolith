@@ -563,6 +563,54 @@ app.post("/api/admin/backup/restore", async (c) => {
   }
 });
 
+// 从 R2 备份文件直接恢复数据（真正的恢复逻辑）
+app.post("/api/admin/backup/r2-restore", async (c) => {
+  const { name, mode } = await c.req.json<{ name: string; mode?: "merge" | "overwrite" }>();
+  if (!name) return c.json({ error: "缺少备份文件名" }, 400);
+
+  const storage = c.get("storage");
+  const db = c.get("db");
+
+  const object = await storage.get(`backups/${name}`);
+  if (!object) return c.json({ error: "备份文件不存在" }, 404);
+
+  // 读取完整备份内容
+  const reader = object.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let done = false;
+  while (!done) {
+    const result = await reader.read();
+    if (result.value) chunks.push(result.value);
+    done = result.done;
+  }
+  const text = new TextDecoder().decode(new Uint8Array(chunks.flatMap((c) => [...c])));
+
+  let data: { posts?: unknown[]; tags?: unknown[]; settings?: Record<string, string> };
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return c.json({ error: "备份文件格式无效，无法解析 JSON" }, 400);
+  }
+
+  if (!data.posts && !data.tags && !data.settings) {
+    return c.json({ error: "备份文件缺少有效数据字段（posts / tags / settings）" }, 400);
+  }
+
+  try {
+    const imported = await db.importAll({
+      posts: data.posts as Parameters<typeof db.importAll>[0]["posts"],
+      tags: data.tags as Parameters<typeof db.importAll>[0]["tags"],
+      settings: data.settings,
+      mode: mode || "merge",
+    });
+    return c.json({ success: true, imported, source: name, mode: mode || "merge" });
+  } catch (err) {
+    return c.json({ error: `恢复失败: ${err instanceof Error ? err.message : "未知错误"}` }, 500);
+  }
+});
+
+
+
 // WebDAV 备份
 app.post("/api/admin/backup/webdav", async (c) => {
   const body = await c.req.json<{

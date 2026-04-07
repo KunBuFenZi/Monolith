@@ -1,5 +1,7 @@
 import { marked } from "marked";
 import hljs from "highlight.js/lib/core";
+import DOMPurify from "dompurify";
+
 
 // 按需注册语言（避免打包过大）
 import javascript from "highlight.js/lib/languages/javascript";
@@ -145,13 +147,25 @@ function escapeHtml(s: string): string {
 }
 
 /**
- * 渲染 Markdown 为 HTML
+ * 渲染 Markdown 为 HTML（已通过 DOMPurify 净化，防 XSS）
  * 支持：标题/粗体/斜体/删除线/链接/图片/代码块(高亮)/行内代码/
  *       表格/任务列表/有序无序列表/引用/分隔线/脚注
  */
 export function renderMarkdown(md: string): string {
-  return marked.parse(md, { async: false }) as string;
+  const raw = marked.parse(md, { async: false }) as string;
+  // 净化 HTML，允许 iframe（B站/YouTube 嵌入）和代码块复制按钮所需的 data 属性
+  return DOMPurify.sanitize(raw, {
+    ADD_TAGS: ["iframe", "video", "source", "figure", "figcaption"],
+    ADD_ATTR: [
+      "allow", "allowfullscreen", "frameborder", "scrolling",
+      "playsinline", "preload", "controls",
+      "loading", "decoding",
+      "data-copy-icon", "data-check-icon",
+      "target", "rel",
+    ],
+  });
 }
+
 
 /* ── TOC 辅助函数 ─────────────────────────── */
 

@@ -506,6 +506,9 @@ export class D1Adapter implements IDatabase {
             excerpt: post.excerpt || "",
             coverColor: post.coverColor || "",
             published: post.published ?? true,
+            listed: post.listed ?? true,
+            pinned: post.pinned ?? false,
+            publishAt: post.publishAt || null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           });
@@ -540,10 +543,12 @@ export class D1Adapter implements IDatabase {
       })
       .from(posts)
       .where(
-        sql`${posts.published} = 1 AND (${posts.publishAt} IS NULL OR ${posts.publishAt} <= datetime('now')) AND (${posts.title} LIKE ${pattern} OR ${posts.content} LIKE ${pattern} OR ${posts.excerpt} LIKE ${pattern})`
+        // 只搜索 title 和 excerpt，避免对大字段 content 做全表 LIKE 扫描
+        sql`${posts.published} = 1 AND (${posts.publishAt} IS NULL OR ${posts.publishAt} <= datetime('now')) AND (${posts.title} LIKE ${pattern} OR ${posts.excerpt} LIKE ${pattern})`
       )
       .orderBy(desc(posts.createdAt))
       .limit(limit);
+
 
     return Promise.all(
       rows.map(async (post) => ({

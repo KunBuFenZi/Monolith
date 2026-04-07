@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { checkAuth, fetchPost, createPost, updatePost, uploadImage } from "@/lib/api";
+import { fetchPost, createPost, updatePost, uploadImage } from "@/lib/api";
 import { renderMarkdown } from "@/lib/markdown";
 import { ArrowLeft, Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode } from "lucide-react";
 import { Link } from "wouter";
@@ -131,7 +131,6 @@ export function AdminEditor() {
 
   useEffect(() => {
     document.title = isEdit ? "编辑文章 | Monolith" : "新建文章 | Monolith";
-    checkAuth().then((ok) => { if (!ok) setLocation("/admin/login"); });
 
     if (isEdit && params.slug) {
       fetchPost(params.slug).then((post) => {
