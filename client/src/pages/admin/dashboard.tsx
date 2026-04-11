@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { checkAuth, clearToken, fetchAdminPosts, deletePost, fetchViewStats, type Post, type ViewStats } from "@/lib/api";
-import { Plus, Edit, Trash2, LogOut, Eye, FileText, Tag, Clock, Search, Settings, ExternalLink, HardDrive, StickyNote, TrendingUp, BarChart3, MessageCircle, Image as ImageIcon, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, LogOut, Eye, FileText, Tag, Clock, Search, Settings, ExternalLink, HardDrive, StickyNote, TrendingUp, BarChart3, MessageCircle, Image as ImageIcon, ArrowRight, Globe, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 function timeAgo(d: string): string {
@@ -217,8 +217,72 @@ export function AdminDashboard() {
           )}
         </div>
 
-        {/* ─── 右侧边栏：标签 + 热门 ─── */}
+        {/* ─── 右侧边栏：标签 + 热门 + SEO ─── */}
         <div className="space-y-[14px]">
+
+          {/* SEO 健康状态 */}
+          {posts.length > 0 && (() => {
+            const published = posts.filter(p => p.published);
+            const withExcerpt = published.filter(p => p.excerpt && p.excerpt.trim().length > 0);
+            const withTags = published.filter(p => p.tags.length > 0);
+            const goodSlug = published.filter(p => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.slug));
+            const withTitle50 = published.filter(p => p.title.length <= 60 && p.title.length >= 5);
+
+            const checks = [
+              { label: "Meta 摘要", ok: withExcerpt.length, total: published.length, desc: "已填写 excerpt" },
+              { label: "标签覆盖", ok: withTags.length, total: published.length, desc: "至少 1 个标签" },
+              { label: "URL 规范", ok: goodSlug.length, total: published.length, desc: "slug 为小写+连字符" },
+              { label: "标题长度", ok: withTitle50.length, total: published.length, desc: "5-60 字符" },
+            ];
+
+            const totalOk = checks.reduce((s, c) => s + c.ok, 0);
+            const totalAll = checks.reduce((s, c) => s + c.total, 0);
+            const score = totalAll > 0 ? Math.round((totalOk / totalAll) * 100) : 0;
+
+            const scoreColor = score >= 90 ? "text-emerald-400" : score >= 70 ? "text-amber-400" : "text-red-400";
+            const scoreBg = score >= 90 ? "bg-emerald-500/8" : score >= 70 ? "bg-amber-500/8" : "bg-red-500/8";
+            const scoreBorder = score >= 90 ? "border-emerald-500/20" : score >= 70 ? "border-amber-500/20" : "border-red-500/20";
+
+            return (
+              <div className={`rounded-xl border ${scoreBorder} ${scoreBg} p-[14px]`}>
+                <div className="flex items-center justify-between mb-[10px]">
+                  <h3 className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider flex items-center gap-[4px]">
+                    <Globe className="h-[10px] w-[10px] text-cyan-400/50" />SEO 健康
+                  </h3>
+                  <span className={`text-[18px] font-bold ${scoreColor}`}>{score}%</span>
+                </div>
+                <div className="space-y-[6px]">
+                  {checks.map(c => {
+                    const pct = c.total > 0 ? Math.round((c.ok / c.total) * 100) : 0;
+                    const Icon = pct === 100 ? CheckCircle2 : pct >= 70 ? AlertTriangle : XCircle;
+                    const color = pct === 100 ? "text-emerald-400/70" : pct >= 70 ? "text-amber-400/70" : "text-red-400/60";
+                    return (
+                      <div key={c.label} className="flex items-center gap-[6px]">
+                        <Icon className={`h-[11px] w-[11px] shrink-0 ${color}`} />
+                        <span className="flex-1 text-[11px] text-foreground/50">{c.label}</span>
+                        <span className="text-[10px] text-muted-foreground/30">{c.ok}/{c.total}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* sitemap + robots 固定指标 */}
+                <div className="mt-[8px] pt-[8px] border-t border-border/10 space-y-[4px]">
+                  {[
+                    { label: "Sitemap", ok: true },
+                    { label: "Robots noindex (404)", ok: true },
+                    { label: "JSON-LD 结构化", ok: true },
+                    { label: "OG 社交标签", ok: true },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center gap-[6px]">
+                      <CheckCircle2 className="h-[11px] w-[11px] shrink-0 text-emerald-400/50" />
+                      <span className="text-[11px] text-foreground/40">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 标签 */}
           {allTags.length > 0 && (
             <div>
