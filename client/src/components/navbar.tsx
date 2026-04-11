@@ -79,8 +79,8 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* 搜索 + 主题切换 */}
-          <div className="hidden md:flex items-center gap-[4px]">
+          {/* 搜索 + 主题切换（所有尺寸可见） */}
+          <div className="flex items-center gap-[4px]">
             <SearchTrigger />
             <span className="w-[1px] h-[16px] bg-border/40 mx-[2px]" />
             <ThemeToggle />
