@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { checkAuth, getToken } from "@/lib/api";
-import { ArrowLeft, Save, Globe, User, Link2, Rss, ToggleLeft, ToggleRight } from "lucide-react";
+import { ArrowLeft, Save, Globe, User, Link2, Rss, ToggleLeft, ToggleRight, Code } from "lucide-react";
 import { Link } from "wouter";
 
 type Settings = {
@@ -17,6 +17,8 @@ type Settings = {
   email: string;
   footer_text: string;
   rss_enabled: string;
+  custom_header: string;
+  custom_footer: string;
 };
 
 const defaultSettings: Settings = {
@@ -32,6 +34,8 @@ const defaultSettings: Settings = {
   email: "",
   footer_text: "© 2026 Monolith. 使用 Hono + Vite 构建，部署于 Cloudflare 边缘。",
   rss_enabled: "true",
+  custom_header: "",
+  custom_footer: "",
 };
 
 export function AdminSettings() {
@@ -211,6 +215,36 @@ export function AdminSettings() {
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* 自定义代码注入 */}
+      <section>
+        <SectionHeader icon={Code} title="自定义代码" />
+        <div className="rounded-lg border border-border/25 bg-card/15 p-[20px] space-y-[16px]">
+          <div>
+            <label className="mb-[4px] block text-[11px] text-muted-foreground/40 uppercase tracking-wider">HEAD 注入代码</label>
+            <p className="text-[10px] text-muted-foreground/25 mb-[6px]">注入到 &lt;head&gt; 标签内，适用于统计代码、SEO 验证、自定义样式等</p>
+            <textarea
+              value={settings.custom_header}
+              onChange={(e) => setSettings({ ...settings, custom_header: e.target.value })}
+              placeholder="<!-- 例如 Google Analytics 或 AdSense 代码 -->"
+              rows={4}
+              className="w-full rounded-md border border-border/25 bg-background/20 px-[12px] py-[8px] text-[12px] text-foreground font-mono placeholder:text-muted-foreground/20 outline-none focus:border-foreground/15 transition-colors resize-none leading-[1.7]"
+            />
+          </div>
+          <div>
+            <label className="mb-[4px] block text-[11px] text-muted-foreground/40 uppercase tracking-wider">FOOTER 注入代码</label>
+            <p className="text-[10px] text-muted-foreground/25 mb-[6px]">注入到 &lt;/body&gt; 之前，适用于广告代码、客服脚本等</p>
+            <textarea
+              value={settings.custom_footer}
+              onChange={(e) => setSettings({ ...settings, custom_footer: e.target.value })}
+              placeholder="<!-- 例如广告联盟代码或客服聊天脚本 -->"
+              rows={4}
+              className="w-full rounded-md border border-border/25 bg-background/20 px-[12px] py-[8px] text-[12px] text-foreground font-mono placeholder:text-muted-foreground/20 outline-none focus:border-foreground/15 transition-colors resize-none leading-[1.7]"
+            />
+          </div>
+          <p className="text-[10px] text-amber-400/50">⚠ 请确保注入的代码来源可信，错误的脚本可能影响页面加载或安全性</p>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { SearchOverlay } from "@/components/search";
@@ -17,9 +18,49 @@ import { AdminComments } from "@/pages/admin/comments";
 import { AdminMedia } from "@/pages/admin/media";
 import { DynamicPage } from "@/pages/dynamic-page";
 
+/** 将 HTML 字符串安全注入到容器中（支持 script 标签执行） */
+function injectHtml(container: HTMLElement, html: string) {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  Array.from(temp.childNodes).forEach((node) => {
+    if (node instanceof HTMLScriptElement) {
+      // script 需要重新创建才能执行
+      const script = document.createElement("script");
+      if (node.src) script.src = node.src;
+      else script.textContent = node.textContent;
+      Array.from(node.attributes).forEach((a) => script.setAttribute(a.name, a.value));
+      container.appendChild(script);
+    } else {
+      container.appendChild(node.cloneNode(true));
+    }
+  });
+}
+
 export function App() {
   const [location] = useLocation();
   const isEditorPage = location.startsWith("/admin/editor");
+
+  // 注入自定义 header/footer 代码（仅执行一次）
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((r) => r.json())
+      .then((s) => {
+        if (s.custom_header) {
+          const container = document.createElement("div");
+          container.id = "monolith-custom-header";
+          injectHtml(container, s.custom_header);
+          // 将子节点移入 head
+          Array.from(container.childNodes).forEach((n) => document.head.appendChild(n));
+        }
+        if (s.custom_footer) {
+          const container = document.createElement("div");
+          container.id = "monolith-custom-footer";
+          injectHtml(container, s.custom_footer);
+          document.body.appendChild(container);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>
