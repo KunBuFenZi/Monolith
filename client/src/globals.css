@@ -485,6 +485,104 @@
   user-select: none;
 }
 
+/* 有标题时语言标签位置调整 */
+.prose-monolith .has-title .code-lang {
+  top: 50px;
+}
+
+/* 代码块标题栏 */
+.prose-monolith .code-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: oklch(0.18 0.006 220);
+  border-bottom: 1px solid oklch(1 0 0 / 6%);
+  border-radius: 8px 8px 0 0;
+  font-size: 12px;
+  color: oklch(0.55 0 0);
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+}
+
+.prose-monolith .has-title pre {
+  border-radius: 0 0 8px 8px;
+  margin-top: 0;
+}
+
+/* 标题栏窗口圆点（macOS 风格） */
+.prose-monolith .code-title-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.prose-monolith .code-title-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.prose-monolith .code-title-dots span:nth-child(1) { background: oklch(0.65 0.2 25); }
+.prose-monolith .code-title-dots span:nth-child(2) { background: oklch(0.75 0.15 85); }
+.prose-monolith .code-title-dots span:nth-child(3) { background: oklch(0.65 0.17 145); }
+
+.prose-monolith .code-title-text {
+  color: oklch(0.55 0 0);
+}
+
+/* 代码行布局 */
+.prose-monolith pre code .code-line {
+  display: inline-block;
+  width: 100%;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-radius: 2px;
+}
+
+/* 行号 */
+.prose-monolith pre code .line-number {
+  display: inline-block;
+  width: 32px;
+  margin-right: 16px;
+  text-align: right;
+  color: oklch(0.35 0 0);
+  user-select: none;
+  pointer-events: none;
+  font-size: 11px;
+}
+
+/* 有行号时调整 pre 左边距 */
+.prose-monolith .has-line-numbers pre {
+  padding-left: 8px;
+}
+
+/* 高亮行 */
+.prose-monolith pre code .line-highlight {
+  background: oklch(0.65 0.15 200 / 10%);
+  border-left: 2px solid oklch(0.65 0.15 200);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+
+.prose-monolith .has-line-numbers pre code .line-highlight {
+  margin-left: -8px;
+  padding-left: 6px;
+}
+
+/* Diff 行高亮 */
+.prose-monolith pre code .diff-add {
+  background: oklch(0.55 0.15 145 / 12%);
+  border-left: 2px solid oklch(0.6 0.17 145);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+
+.prose-monolith pre code .diff-del {
+  background: oklch(0.55 0.15 25 / 12%);
+  border-left: 2px solid oklch(0.6 0.17 25);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+
 /* 图片 figure */
 .prose-monolith .md-figure {
   margin: 24px 0;
@@ -629,6 +727,28 @@
   color: oklch(0.45 0 0);
   background: oklch(0.93 0 0);
   border-color: oklch(0 0 0 / 10%);
+}
+:root[data-theme="light"] .prose-monolith .code-title-bar {
+  background: oklch(0.93 0.002 250);
+  border-color: oklch(0 0 0 / 8%);
+}
+:root[data-theme="light"] .prose-monolith .code-title-text {
+  color: oklch(0.45 0 0);
+}
+:root[data-theme="light"] .prose-monolith pre code .line-number {
+  color: oklch(0.65 0 0);
+}
+:root[data-theme="light"] .prose-monolith pre code .line-highlight {
+  background: oklch(0.55 0.12 220 / 8%);
+  border-left-color: oklch(0.55 0.12 220);
+}
+:root[data-theme="light"] .prose-monolith pre code .diff-add {
+  background: oklch(0.55 0.15 145 / 8%);
+  border-left-color: oklch(0.5 0.17 145);
+}
+:root[data-theme="light"] .prose-monolith pre code .diff-del {
+  background: oklch(0.55 0.15 25 / 8%);
+  border-left-color: oklch(0.5 0.17 25);
 }
 :root[data-theme="light"] .prose-monolith .code-line-num {
   color: oklch(0.65 0 0);
