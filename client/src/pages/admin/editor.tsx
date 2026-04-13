@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { fetchPost, createPost, updatePost, uploadImage, localizePostImages, fetchPostVersions, restorePostVersion, type PostVersion } from "@/lib/api";
 import { renderMarkdown } from "@/lib/markdown";
-import { ArrowLeft, Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode, ImageDown, History, Check, X } from "lucide-react";
+import { ArrowLeft, Save, Eye, EyeOff, Upload, Image, ChevronDown, ChevronUp, Bold, Italic, Heading2, Heading3, Link2, Code, Quote, List, ListOrdered, Minus, Maximize2, Minimize2, Table, CheckSquare, FileCode, ImageDown, History, Check, X, ArrowDownUp, PanelRightClose, PanelRight } from "lucide-react";
 import { Link } from "wouter";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type * as MonacoTypes from "monaco-editor";
@@ -136,6 +136,12 @@ export function AdminEditor() {
   const [versions, setVersions] = useState<PostVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [syncScroll, setSyncScroll] = useState(true);
+  const syncScrollRef = useRef(true);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // 保持 ref 与 state 同步（避免 onMount 闭包陷阱）
+  useEffect(() => { syncScrollRef.current = syncScroll; }, [syncScroll]);
 
   useEffect(() => {
     if (isEdit && params.slug) {
@@ -482,9 +488,6 @@ export function AdminEditor() {
           <button onClick={() => setZenMode(!zenMode)} title="专注模式" className="h-[30px] px-[8px] rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-accent/20 transition-colors">
             {zenMode ? <Minimize2 className="h-[13px] w-[13px]" /> : <Maximize2 className="h-[13px] w-[13px]" />}
           </button>
-          <button onClick={() => setShowPreview(!showPreview)} title={showPreview ? "隐藏预览" : "显示预览"} className={`h-[30px] px-[8px] rounded-md transition-colors ${showPreview ? "text-foreground bg-accent/20" : "text-muted-foreground/40 hover:text-foreground"}`}>
-            {showPreview ? <Eye className="h-[13px] w-[13px]" /> : <EyeOff className="h-[13px] w-[13px]" />}
-          </button>
           <label className="flex items-center gap-[5px] text-[12px] text-muted-foreground/50 cursor-pointer select-none">
             <input type="checkbox" checked={form.published} onChange={(e) => updateField("published", e.target.checked)} className="rounded accent-foreground" />
             发布
@@ -644,13 +647,22 @@ export function AdminEditor() {
                 );
               })}
             </div>
-            <div className="flex items-center gap-[4px]">
+            <div className="flex items-center gap-[2px]">
               <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]); }} />
               <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
                 className="inline-flex items-center gap-[3px] h-[24px] px-[6px] rounded-[4px] text-[10px] text-muted-foreground/40 hover:text-foreground hover:bg-accent/20 transition-colors disabled:opacity-50"
               >
                 {uploading ? <Upload className="h-[10px] w-[10px] animate-pulse" /> : <Image className="h-[10px] w-[10px]" />}
                 {uploading ? "上传中" : "插图"}
+              </button>
+              <div className="w-[1px] h-[14px] bg-border/15 mx-[3px]" />
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                title={showPreview ? "关闭预览" : "打开预览"}
+                className={`inline-flex items-center gap-[3px] h-[24px] px-[6px] rounded-[4px] text-[10px] transition-colors ${showPreview ? "text-cyan-400/70 bg-cyan-500/8 hover:bg-cyan-500/12" : "text-muted-foreground/40 hover:text-foreground hover:bg-accent/20"}`}
+              >
+                {showPreview ? <Eye className="h-[10px] w-[10px]" /> : <EyeOff className="h-[10px] w-[10px]" />}
+                {showPreview ? "预览" : "预览"}
               </button>
             </div>
           </div>
@@ -664,6 +676,19 @@ export function AdminEditor() {
               beforeMount={handleEditorWillMount}
               onMount={(editor) => {
                 editorRef.current = editor;
+                // ── 同步滚动：编辑器 → 预览 ──
+                editor.onDidScrollChange(() => {
+                  if (!syncScrollRef.current || !previewRef.current) return;
+                  const scrollTop = editor.getScrollTop();
+                  const scrollHeight = editor.getScrollHeight();
+                  const clientHeight = editor.getLayoutInfo().height;
+                  const maxScroll = scrollHeight - clientHeight;
+                  if (maxScroll <= 0) return;
+                  const ratio = scrollTop / maxScroll;
+                  const previewEl = previewRef.current;
+                  const previewMax = previewEl.scrollHeight - previewEl.clientHeight;
+                  previewEl.scrollTop = ratio * previewMax;
+                });
                 // 监听 Monaco 编辑器的 paste 事件（处理粘贴图片）
                 const domNode = editor.getDomNode();
                 if (domNode) {
@@ -720,10 +745,31 @@ export function AdminEditor() {
         {/* 右侧实时预览 */}
         {showPreview && (
           <div className="flex flex-col min-h-0 border-l border-border/15">
-            <div className="px-[12px] py-[6px] border-b border-border/15 bg-card/10 shrink-0">
-              <span className="text-[10px] text-muted-foreground/35">预览</span>
+            <div className="flex items-center justify-between px-[12px] py-[4px] border-b border-border/15 bg-card/10 shrink-0">
+              <span className="text-[10px] text-muted-foreground/35 uppercase tracking-[0.05em]">预览</span>
+              <div className="flex items-center gap-[2px]">
+                <button
+                  onClick={() => setSyncScroll(!syncScroll)}
+                  title={syncScroll ? "已开启同步滚动（点击关闭）" : "已关闭同步滚动（点击开启）"}
+                  className={`h-[24px] px-[6px] rounded-[4px] inline-flex items-center gap-[4px] text-[10px] transition-all ${
+                    syncScroll
+                      ? "text-cyan-400/80 bg-cyan-500/10 hover:bg-cyan-500/15"
+                      : "text-muted-foreground/30 hover:text-muted-foreground/50 hover:bg-accent/10"
+                  }`}
+                >
+                  <ArrowDownUp className="h-[11px] w-[11px]" />
+                  {syncScroll ? "同步" : "独立"}
+                </button>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  title="关闭预览面板"
+                  className="h-[24px] px-[6px] rounded-[4px] inline-flex items-center text-muted-foreground/30 hover:text-foreground hover:bg-accent/15 transition-colors"
+                >
+                  <PanelRightClose className="h-[12px] w-[12px]" />
+                </button>
+              </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-[24px]">
+            <div ref={previewRef} className="flex-1 min-h-0 overflow-y-auto p-[24px]">
               {form.title && (
                 <h1 className="text-[22px] font-semibold tracking-[-0.02em] mb-[16px]">{form.title}</h1>
               )}

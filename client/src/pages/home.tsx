@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Hero } from "@/components/hero";
 import { ArticleCard } from "@/components/article-card";
-import { Badge } from "@/components/ui/badge";
+
 import { Separator } from "@/components/ui/separator";
 import { fetchPosts, fetchCategories, type PostMeta, type CategoryInfo } from "@/lib/api";
 import { AnimateIn } from "@/hooks/use-animate";
 import { SeoHead } from "@/components/seo-head";
-import { ExternalLink, Mail, Rss, Eye, FolderOpen } from "lucide-react";
+import { ExternalLink, Mail, Rss, Eye, FolderOpen, Hash, ChevronDown } from "lucide-react";
 
 type PublicSettings = {
   site_title: string;
@@ -27,6 +27,49 @@ type TrafficData = {
   totalPosts: number;
   chart: { date: string; count: number }[];
 };
+
+/* ── 紧凑标签云 ── */
+const TAG_VISIBLE = 15;
+function TagCloud({ tags, maxCount }: { tags: [string, number][]; maxCount: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = tags.length > TAG_VISIBLE;
+  const visible = expanded ? tags : tags.slice(0, TAG_VISIBLE);
+  return (
+    <div className="rounded-lg border border-border/40 bg-card/30 p-[20px]">
+      <h3 className="mb-[12px] text-[13px] font-medium uppercase tracking-[0.06em] text-muted-foreground/60 flex items-center gap-[5px]">
+        <Hash className="h-[12px] w-[12px]" />
+        标签
+        <span className="ml-auto text-[10px] font-mono text-muted-foreground/25 normal-case tracking-normal">{tags.length}</span>
+      </h3>
+      <div className="flex flex-wrap gap-x-[6px] gap-y-[4px] leading-[1.9]">
+        {visible.map(([tag, count]) => {
+          // 频率归一化 0~1 映射透明度与字号
+          const ratio = maxCount > 1 ? (count - 1) / (maxCount - 1) : 0;
+          const opacity = 0.35 + ratio * 0.55; // 0.35 ~ 0.90
+          const size = 11 + ratio * 3; // 11px ~ 14px
+          return (
+            <span
+              key={tag}
+              className="cursor-pointer whitespace-nowrap transition-colors duration-200 hover:text-foreground"
+              style={{ fontSize: `${size}px`, color: `oklch(0.85 0.01 240 / ${opacity})` }}
+              title={`${tag}（${count} 篇）`}
+            >
+              {tag}
+            </span>
+          );
+        })}
+      </div>
+      {hasMore && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="mt-[8px] inline-flex items-center gap-[3px] text-[11px] text-muted-foreground/30 transition-colors hover:text-muted-foreground/60"
+        >
+          展开全部 <ChevronDown className="h-[11px] w-[11px]" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 /* ── 纯 SVG 迷你折线图 ── */
 function SparkLine({ data, width = 240, height = 48 }: { data: number[]; width?: number; height?: number }) {
@@ -86,7 +129,14 @@ export function HomePage() {
     fetchCategories().then(setCategories).catch(() => {});
   }, []);
 
-  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags)));
+  // 计算标签频次并按热度排序
+  const tagCounts = posts.flatMap((p) => p.tags).reduce<Record<string, number>>((acc, t) => {
+    if (t === "__proto__" || t === "constructor") return acc;
+    acc[t] = Object.prototype.hasOwnProperty.call(acc, t) ? acc[t] + 1 : 1;
+    return acc;
+  }, {});
+  const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const maxTagCount = sortedTags.length > 0 ? sortedTags[0][1] : 1;
 
   const authorName = settings?.author_name || "Monolith";
   const authorTitle = settings?.author_title || "独立开发者";
@@ -174,16 +224,9 @@ export function HomePage() {
             </AnimateIn>
 
             {/* ── 标签云（无标签时隐藏） ── */}
-            {allTags.length > 0 && (
+            {sortedTags.length > 0 && (
               <AnimateIn animation="animate-fade-in" delay="delay-3">
-                <div className="rounded-lg border border-border/40 bg-card/30 p-[20px]">
-                  <h3 className="mb-[12px] text-[13px] font-medium uppercase tracking-[0.06em] text-muted-foreground/60">标签</h3>
-                  <div className="flex flex-wrap gap-[6px]">
-                    {allTags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="h-[24px] rounded-[4px] px-[8px] text-[12px] font-normal text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground cursor-pointer">{tag}</Badge>
-                    ))}
-                  </div>
-                </div>
+                <TagCloud tags={sortedTags} maxCount={maxTagCount} />
               </AnimateIn>
             )}
             {/* ── 分类（无分类时隐藏） ── */}

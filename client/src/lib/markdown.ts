@@ -60,9 +60,13 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");        // 去除首尾连字符
 }
 
-renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
-  const id = slugify(text);
-  return `<h${depth} id="${id}">${text}</h${depth}>`;
+renderer.heading = function ({ text, depth, tokens }: { text: string; depth: number; tokens?: any[] }) {
+  const id = slugify(text); // slugify 用原始纯文本生成锚点 id
+  // 用 parseInline 解析 inline 格式（粗体、代码等）为 HTML
+  const html = tokens && this.parser
+    ? this.parser.parseInline(tokens)
+    : text;
+  return `<h${depth} id="${id}">${html}</h${depth}>`;
 };
 
 // 代码块：高亮 + 语言标签 + 复制按钮 + 行号 + 标题 + 行高亮
@@ -137,25 +141,31 @@ renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
     return `<span class="code-line${hlClass}${diffClass}">${numHtml}<span class="line-content">${line}</span></span>`;
   }).join("\n");
 
-  // 标题栏
-  const titleBar = title
-    ? `<div class="code-title-bar"><span class="code-title-dots"><span></span><span></span><span></span></span><span class="code-title-text">${escapeHtml(title)}</span></div>`
-    : "";
 
-  const langLabel = language ? `<span class="code-lang">${language}</span>` : "";
+  const langLabel = language ? `<span class="code-lang">${language}</span>` : `<span class="code-lang">code</span>`;
 
   const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+
+  const copyBtn = `<button class="copy-code-btn" aria-label="复制代码">${copyIcon}</button>`;
 
   const hasTitle = title ? " has-title" : "";
   const hasLineNums = showLineNumbers ? " has-line-numbers" : "";
 
-  return `<div class="code-block-wrapper relative group${hasTitle}${hasLineNums}">
-    ${titleBar}
-    <button class="copy-code-btn absolute ${title ? "top-[42px]" : "top-2"} right-2 flex items-center justify-center p-1.5 rounded-md border border-border/40 bg-card/60 text-muted-foreground transition-all duration-200 hover:text-foreground hover:bg-card hover:border-border/80 opacity-40 hover:opacity-100 group-hover:opacity-100 z-10" aria-label="复制代码">
-      ${copyIcon}
-    </button>
-    <pre class="hljs">${langLabel}<code class="hljs language-${language || "text"}">${codeLines}</code></pre>
-  </div>`;
+  if (title) {
+    // 有标题时：标题栏（macOS 圆点 + 标题 + 复制按钮）
+    const titleBar = `<div class="code-title-bar"><span class="code-title-dots"><span></span><span></span><span></span></span><span class="code-title-text">${escapeHtml(title)}</span>${copyBtn}</div>`;
+    return `<div class="code-block-wrapper${hasTitle}${hasLineNums}">
+      ${titleBar}
+      <pre class="hljs"><code class="hljs language-${language || "text"}">${codeLines}</code></pre>
+    </div>`;
+  } else {
+    // 无标题时：顶部信息栏（语言标签 + 复制按钮）
+    const header = `<div class="code-header">${langLabel}${copyBtn}</div>`;
+    return `<div class="code-block-wrapper has-header${hasLineNums}">
+      ${header}
+      <pre class="hljs"><code class="hljs language-${language || "text"}">${codeLines}</code></pre>
+    </div>`;
+  }
 };
 
 // 图片/视频：懒加载 + 圆角 + 视频解析
@@ -198,18 +208,53 @@ renderer.image = ({ href, title, text }: { href: string; title?: string | null; 
   return `<figure class="md-figure"><img src="${href}" alt="${escapeHtml(text)}" loading="lazy" decoding="async" data-lazy-img${titleAttr} class="lazy-img"/>${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ""}</figure>`;
 };
 
-// 表格：响应式包裹
-renderer.table = (token: any) => {
-  const header = token.header || '';
-  const body = token.body || token.rows || '';
-  return `<div class="table-wrapper"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+// 表格：响应式包裹（兼容 marked v15+ 的 token 结构）
+renderer.table = function (token: any) {
+  // marked v15+ 传入的是 token 对象，header 和 rows 是嵌套 Token 数组
+  // 需要手动构建 HTML 表格
+  let headerHtml = "";
+  let bodyHtml = "";
+
+  // 处理表头
+  if (token.header && Array.isArray(token.header)) {
+    headerHtml = "<tr>" + token.header.map((cell: any) => {
+      const align = cell.align ? ` style="text-align:${cell.align}"` : "";
+      const cellText = cell.tokens
+        ? this.parser.parseInline(cell.tokens)
+        : (typeof cell.text === "string" ? cell.text : "");
+      return `<th${align}>${cellText}</th>`;
+    }).join("") + "</tr>";
+  } else if (typeof token.header === "string") {
+    headerHtml = token.header;
+  }
+
+  // 处理表体
+  if (token.rows && Array.isArray(token.rows)) {
+    bodyHtml = token.rows.map((row: any) => {
+      if (!Array.isArray(row)) return typeof row === "string" ? row : "";
+      return "<tr>" + row.map((cell: any) => {
+        const align = cell.align ? ` style="text-align:${cell.align}"` : "";
+        const cellText = cell.tokens
+          ? this.parser.parseInline(cell.tokens)
+          : (typeof cell.text === "string" ? cell.text : "");
+        return `<td${align}>${cellText}</td>`;
+      }).join("") + "</tr>";
+    }).join("");
+  } else if (typeof token.body === "string") {
+    bodyHtml = token.body;
+  }
+
+  return `<div class="table-wrapper"><table><thead>${headerHtml}</thead><tbody>${bodyHtml}</tbody></table></div>`;
 };
 
-// 链接：外部链接自动 target="_blank"
-renderer.link = (token: any) => {
+// 链接：外部链接自动 target="_blank"（兼容 marked v15 token 结构）
+renderer.link = function (token: any) {
   const href = token.href || '';
   const title = token.title || '';
-  const text = token.text || '';
+  // 用 parseInline 解析链接文本中的 inline 格式
+  const text = token.tokens && this.parser
+    ? this.parser.parseInline(token.tokens)
+    : (token.text || '');
   const isExternal = href.startsWith("http");
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
   const externalAttrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : "";

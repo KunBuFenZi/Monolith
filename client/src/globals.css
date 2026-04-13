@@ -292,15 +292,16 @@
    ───────────────────────────────────────────── */
 .prose-monolith {
   font-size: 15px;
-  line-height: 1.8;
-  letter-spacing: 0;
+  line-height: 1.9;
+  letter-spacing: 0.012em;
   color: oklch(0.85 0 0);
+  word-spacing: 0.02em;
 }
 
 /* 标题 */
 .prose-monolith h2 {
-  margin-top: 40px;
-  margin-bottom: 16px;
+  margin-top: 48px;
+  margin-bottom: 18px;
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -309,8 +310,8 @@
 }
 
 .prose-monolith h3 {
-  margin-top: 32px;
-  margin-bottom: 12px;
+  margin-top: 36px;
+  margin-bottom: 14px;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0;
@@ -329,7 +330,7 @@
 
 /* 段落 */
 .prose-monolith p {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 /* 链接 */
@@ -355,8 +356,8 @@
 /* 列表 */
 .prose-monolith ul,
 .prose-monolith ol {
-  margin-bottom: 16px;
-  padding-left: 20px;
+  margin-bottom: 20px;
+  padding-left: 22px;
 }
 
 .prose-monolith ul {
@@ -368,8 +369,9 @@
 }
 
 .prose-monolith li {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   padding-left: 4px;
+  line-height: 1.8;
 }
 
 .prose-monolith li::marker {
@@ -378,8 +380,8 @@
 
 /* 引用块 */
 .prose-monolith blockquote {
-  margin: 24px 0;
-  padding: 16px 20px;
+  margin: 28px 0;
+  padding: 16px 24px;
   border-left: 3px solid oklch(0.5 0.1 220 / 50%);
   background: oklch(1 0 0 / 4%);
   border-radius: 0 8px 8px 0;
@@ -393,25 +395,28 @@
 
 /* 行内代码 */
 .prose-monolith code:not(pre code) {
-  padding: 2px 6px;
+  padding: 3px 8px;
+  margin: 0 3px;
   font-size: 13px;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
   background: oklch(1 0 0 / 6%);
   border: 1px solid oklch(1 0 0 / 8%);
-  border-radius: 4px;
+  border-radius: 5px;
   color: oklch(0.85 0.06 220);
+  overflow-wrap: anywhere;
 }
 
 /* 代码块 */
 .prose-monolith pre {
-  margin: 20px 0;
-  padding: 20px;
+  margin: 24px 0;
+  padding: 16px 20px;
   border-radius: 8px;
   background: oklch(0.15 0.006 220) !important;
   border: 1px solid oklch(1 0 0 / 6%);
   overflow-x: auto;
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.85;
+  letter-spacing: 0;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
@@ -421,6 +426,45 @@
   border: none;
   font-size: inherit;
   color: oklch(0.85 0 0);
+}
+
+/* 代码块包裹容器间距（统一管理 margin，pre 自身 margin 被 has-header 覆盖为 0） */
+.prose-monolith .code-block-wrapper {
+  margin: 24px 0;
+}
+
+.prose-monolith .code-block-wrapper pre {
+  margin-top: 0;
+}
+
+/* ── 块间衔接优化 ── */
+/* 标题后紧接代码块/表格/引用，缩小间距避免割裂感 */
+.prose-monolith h2 + .code-block-wrapper,
+.prose-monolith h3 + .code-block-wrapper,
+.prose-monolith h4 + .code-block-wrapper {
+  margin-top: 16px;
+}
+
+.prose-monolith h2 + .table-wrapper,
+.prose-monolith h3 + .table-wrapper,
+.prose-monolith h4 + .table-wrapper {
+  margin-top: 16px;
+}
+
+.prose-monolith h2 + blockquote,
+.prose-monolith h3 + blockquote,
+.prose-monolith h4 + blockquote {
+  margin-top: 14px;
+}
+
+/* 连续代码块之间缩小间距 */
+.prose-monolith .code-block-wrapper + .code-block-wrapper {
+  margin-top: 16px;
+}
+
+/* 段落最后一个元素不要底部间距（避免与下一个块元素双重空白） */
+.prose-monolith p:last-child {
+  margin-bottom: 0;
 }
 
 /* 分隔线 */
@@ -433,7 +477,7 @@
 /* 表格响应式包裹 */
 .prose-monolith .table-wrapper {
   overflow-x: auto;
-  margin: 20px 0;
+  margin: 28px 0;
   border-radius: 8px;
   border: 1px solid oklch(1 0 0 / 6%);
 }
@@ -468,26 +512,69 @@
   background: oklch(1 0 0 / 2%);
 }
 
-/* 代码块语言标签 */
-.prose-monolith pre {
-  position: relative;
+/* 代码块顶部信息栏（语言标签 + 复制按钮） */
+.prose-monolith .code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 6px 16px;
+  background: oklch(0.13 0.006 220);
+  border: 1px solid oklch(1 0 0 / 6%);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+.prose-monolith .has-header > pre {
+  border-radius: 0 0 8px 8px;
+  margin-top: 0;
 }
 
 .prose-monolith .code-lang {
-  position: absolute;
-  top: 12px;
-  right: 42px;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: oklch(0.45 0 0);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: oklch(0.5 0.02 220);
   pointer-events: none;
   user-select: none;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
-/* 有标题时语言标签位置调整 */
-.prose-monolith .has-title .code-lang {
-  top: 50px;
+/* 复制按钮（信息栏内） */
+.prose-monolith .copy-code-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  gap: 5px;
+  border-radius: 6px;
+  border: 1px solid oklch(1 0 0 / 8%);
+  background: oklch(1 0 0 / 4%);
+  color: oklch(0.45 0 0);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.prose-monolith .copy-code-btn:hover {
+  opacity: 1;
+  color: oklch(0.7 0 0);
+  background: oklch(1 0 0 / 8%);
+  border-color: oklch(1 0 0 / 15%);
+}
+
+.prose-monolith .copy-code-btn svg {
+  flex-shrink: 0;
+}
+
+/* 有标题栏时，复制按钮放标题栏右侧 */
+.prose-monolith .has-title .code-header {
+  display: none;
+}
+
+.prose-monolith .code-title-bar .copy-code-btn {
+  margin-left: auto;
 }
 
 /* 代码块标题栏 */
@@ -720,13 +807,23 @@
   color: oklch(0.35 0.08 250);
   border-color: oklch(0 0 0 / 8%);
 }
-:root[data-theme="light"] .prose-monolith .code-lang {
-  color: oklch(0.55 0 0);
-}
+
 :root[data-theme="light"] .prose-monolith .copy-code-btn {
   color: oklch(0.45 0 0);
   background: oklch(0.93 0 0);
   border-color: oklch(0 0 0 / 10%);
+}
+:root[data-theme="light"] .prose-monolith .copy-code-btn:hover {
+  color: oklch(0.25 0 0);
+  background: oklch(0.90 0 0);
+  border-color: oklch(0 0 0 / 15%);
+}
+:root[data-theme="light"] .prose-monolith .code-header {
+  background: oklch(0.93 0.002 250);
+  border-color: oklch(0 0 0 / 8%);
+}
+:root[data-theme="light"] .prose-monolith .code-lang {
+  color: oklch(0.45 0.02 250);
 }
 :root[data-theme="light"] .prose-monolith .code-title-bar {
   background: oklch(0.93 0.002 250);
@@ -1451,80 +1548,87 @@
   transform: translateY(0);
 }
 
-  /* ── 阅读模式 ─────────────────────────────── */
+  /* ── 阅读模式与控制面板 ─────────────────────────────── */
   .reading-mode .app-header,
   .reading-mode .app-footer,
-.reading-mode .reading-progress-bar,
-.reading-mode .toc-desktop,
-.reading-mode .toc-mobile,
-.reading-mode .reading-mode-toggle {
-  display: none !important;
-}
-
-.reading-mode .post-layout {
-  max-width: 780px;
-  display: block;
-}
-
-.reading-mode .post-content {
-  max-width: 100%;
-  grid-column: auto;
-}
-
-.reading-mode .prose-monolith {
-  font-size: 17px;
-  line-height: 2;
-  letter-spacing: 0.01em;
-}
-
-/* 阅读模式浮动退出按钮 */
-.reading-mode-exit-fab {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid oklch(0.3 0 0 / 0.3);
-  background: oklch(0.15 0 0 / 0.85);
-  color: oklch(0.7 0 0);
-  cursor: pointer;
-  backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
-  animation: reading-fab-in 0.3s ease-out;
-}
-
-.reading-mode-exit-fab:hover {
-  background: oklch(0.2 0 0 / 0.95);
-  color: oklch(0.95 0 0);
-  transform: scale(1.08);
-  border-color: oklch(0.5 0 0 / 0.3);
-}
-
-@keyframes reading-fab-in {
-  from {
-    opacity: 0;
-    transform: scale(0.6) rotate(-90deg);
+  .reading-mode .reading-progress-bar,
+  .reading-mode .toc-desktop,
+  .reading-mode .toc-mobile,
+  .reading-mode .reading-mode-toggle {
+    display: none !important;
   }
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
+
+  /* 动态宽度 */
+  .reading-mode .post-layout {
+    max-width: var(--rm-width, 780px) !important;
+    display: block;
+    transition: max-width 0.3s ease;
   }
-}
 
-/* 亮色模式阅读退出按钮 */
-:root:not(.dark) .reading-mode-exit-fab {
-  border-color: oklch(0.8 0 0 / 0.3);
-  background: oklch(0.98 0 0 / 0.9);
-  color: oklch(0.4 0 0);
-}
+  .reading-mode .post-content {
+    max-width: 100%;
+    grid-column: auto;
+  }
 
-:root:not(.dark) .reading-mode-exit-fab:hover {
-  background: oklch(0.95 0 0 / 0.95);
-  color: oklch(0.15 0 0);
-  border-color: oklch(0.6 0 0 / 0.3);
-}
+  /* 动态字号、行距、字体 */
+  .reading-mode .prose-monolith {
+    font-family: var(--rm-font, inherit);
+    font-size: var(--rm-size, 17px);
+    line-height: var(--rm-line-height, 2.0);
+    letter-spacing: 0.01em;
+    transition: font-size 0.2s ease, line-height 0.2s ease;
+  }
+  
+  .reading-mode .prose-monolith p, 
+  .reading-mode .prose-monolith li,
+  .reading-mode .prose-monolith blockquote {
+    color: inherit; /* 让文字颜色跟随外层被覆盖的颜色 */
+  }
+
+  /* --- 阅读主题覆写 --- */
+  
+  html[data-reading-theme="sepia"] body {
+    background-color: #f4ece3 !important;
+    color: #5b4a3a !important;
+  }
+  html[data-reading-theme="sepia"] .prose-monolith h1,
+  html[data-reading-theme="sepia"] .prose-monolith h2,
+  html[data-reading-theme="sepia"] .prose-monolith h3,
+  html[data-reading-theme="sepia"] .prose-monolith h4 {
+    color: #4a3c31 !important;
+  }
+  html[data-reading-theme="sepia"] .prose-monolith strong {
+    color: #3d3025 !important;
+  }
+  html[data-reading-theme="sepia"] .prose-monolith a {
+    color: #a46d3e !important;
+    box-shadow: 0 1px 0 0 rgba(164, 109, 62, 0.4) !important;
+  }
+
+  html[data-reading-theme="dark"] body {
+    background-color: #1a1a1c !important;
+    color: #e0e0e0 !important;
+  }
+  html[data-reading-theme="dark"] .prose-monolith h1,
+  html[data-reading-theme="dark"] .prose-monolith h2,
+  html[data-reading-theme="dark"] .prose-monolith h3,
+  html[data-reading-theme="dark"] .prose-monolith h4 {
+    color: #ffffff !important;
+  }
+  html[data-reading-theme="dark"] .prose-monolith strong {
+    color: #ffffff !important;
+  }
+  
+  html[data-reading-theme="light"] body {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+  }
+  html[data-reading-theme="light"] .prose-monolith h1,
+  html[data-reading-theme="light"] .prose-monolith h2,
+  html[data-reading-theme="light"] .prose-monolith h3,
+  html[data-reading-theme="light"] .prose-monolith h4 {
+    color: #111111 !important;
+  }
+  html[data-reading-theme="light"] .prose-monolith strong {
+    color: #000000 !important;
+  }
