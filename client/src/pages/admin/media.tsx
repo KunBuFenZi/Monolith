@@ -5,7 +5,7 @@ import {
   type MediaItem,
 } from "@/lib/api";
 import {
-  ArrowLeft, Trash2, Image as ImageIcon, Grid, List, Upload,
+  Trash2, Image as ImageIcon, Grid, List, Upload,
   Copy, Check, X, Eye, ImageDown,
 } from "lucide-react";
 
@@ -139,16 +139,11 @@ export function AdminMedia() {
     <div className="mx-auto w-full max-w-[960px] py-[32px]">
       {/* ─── 顶栏 ─── */}
       <div className="mb-[24px] flex items-center justify-between">
-        <div className="flex items-center gap-[12px]">
-          <Link href="/admin" className="inline-flex items-center justify-center h-[34px] w-[34px] rounded-md border border-border/30 text-muted-foreground/50 hover:text-foreground hover:border-border/50 transition-colors">
-            <ArrowLeft className="h-[14px] w-[14px]" />
-          </Link>
-          <div>
-            <h1 className="text-[24px] font-semibold tracking-[-0.02em]">媒体库</h1>
-            <p className="mt-[3px] text-[13px] text-muted-foreground/40">
-              {media.length} 个文件 · 共 {formatSize(totalSize)}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-[24px] font-semibold tracking-[-0.02em]">媒体库</h1>
+          <p className="mt-[3px] text-[13px] text-muted-foreground/40">
+            {media.length} 个文件 · 共 {formatSize(totalSize)}
+          </p>
         </div>
         <div className="flex items-center gap-[6px]">
           {selected.size > 0 && (

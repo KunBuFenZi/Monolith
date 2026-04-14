@@ -5,7 +5,7 @@ import {
   type AdminComment,
 } from "@/lib/api";
 import {
-  ArrowLeft, Check, Trash2, MessageCircle, Clock, CheckCircle2,
+  Check, Trash2, MessageCircle, Clock, CheckCircle2,
   ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -74,14 +74,9 @@ export function AdminComments() {
     <div className="mx-auto w-full max-w-[960px] py-[32px]">
       {/* ─── 顶栏 ─── */}
       <div className="mb-[24px] flex items-center justify-between">
-        <div className="flex items-center gap-[12px]">
-          <Link href="/admin" className="inline-flex items-center justify-center h-[34px] w-[34px] rounded-md border border-border/30 text-muted-foreground/50 hover:text-foreground hover:border-border/50 transition-colors">
-            <ArrowLeft className="h-[14px] w-[14px]" />
-          </Link>
-          <div>
-            <h1 className="text-[24px] font-semibold tracking-[-0.02em]">评论管理</h1>
-            <p className="mt-[3px] text-[13px] text-muted-foreground/40">审核、管理用户评论</p>
-          </div>
+        <div>
+          <h1 className="text-[24px] font-semibold tracking-[-0.02em]">评论管理</h1>
+          <p className="mt-[3px] text-[13px] text-muted-foreground/40">审核、管理用户评论</p>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { checkAuth, getToken } from "@/lib/api";
-import { ArrowLeft, Plus, Edit, Trash2, Eye, EyeOff, GripVertical, FileText, Navigation, Save } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, FileText, Navigation, Save } from "lucide-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
@@ -109,14 +109,9 @@ export function AdminPages() {
     <div className="mx-auto w-full max-w-[800px] py-[32px]">
       {/* 顶栏 */}
       <div className="mb-[24px] flex items-center justify-between">
-        <div className="flex items-center gap-[16px]">
-          <Link href="/admin" className="inline-flex items-center gap-[5px] text-[13px] text-muted-foreground/50 hover:text-foreground transition-colors">
-            <ArrowLeft className="h-[13px] w-[13px]" />返回
-          </Link>
-          <div>
-            <h1 className="text-[22px] font-semibold tracking-[-0.02em]">独立页管理</h1>
-            <p className="text-[12px] text-muted-foreground/35 mt-[2px]">管理"关于"、"友链"等自定义页面</p>
-          </div>
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">独立页管理</h1>
+          <p className="text-[12px] text-muted-foreground/35 mt-[2px]">管理"关于"、"友链"等自定义页面</p>
         </div>
         <div className="flex items-center gap-[8px]">
           {message.text && (

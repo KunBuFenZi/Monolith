@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { checkAuth, getToken } from "@/lib/api";
-import { ArrowLeft, HardDrive, Cloud, Globe, Download, Trash2, RefreshCw, Shield, Clock, Upload, Eye, FileUp, ChevronDown, ChevronUp, Database, AlertTriangle } from "lucide-react";
+import { HardDrive, Cloud, Globe, Download, Trash2, RefreshCw, Shield, Clock, Upload, Eye, FileUp, ChevronDown, ChevronUp, Database, AlertTriangle } from "lucide-react";
 import { platforms, type ImportResult, type PlatformInfo } from "@/lib/importers";
 import { Link } from "wouter";
 
@@ -255,14 +255,9 @@ export function AdminBackup() {
     <div className="mx-auto w-full max-w-[720px] py-[24px] sm:py-[32px] px-[16px] sm:px-0">
       {/* 顶栏 */}
       <div className="mb-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-[8px]">
-        <div className="flex items-center gap-[16px]">
-          <Link href="/admin" className="inline-flex items-center gap-[5px] text-[13px] text-muted-foreground/50 hover:text-foreground transition-colors">
-            <ArrowLeft className="h-[13px] w-[13px]" />返回
-          </Link>
-          <div>
-            <h1 className="text-[22px] font-semibold tracking-[-0.02em]">备份管理</h1>
-            <p className="text-[12px] text-muted-foreground/35 mt-[2px]">备份、恢复、管理你的博客数据</p>
-          </div>
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">备份管理</h1>
+          <p className="text-[12px] text-muted-foreground/35 mt-[2px]">备份、恢复、管理你的博客数据</p>
         </div>
         {message.text && (
           <span className={`text-[12px] px-[10px] py-[3px] rounded-md transition-all animate-fade-in ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>

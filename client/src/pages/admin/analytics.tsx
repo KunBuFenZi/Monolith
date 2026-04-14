@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { fetchAnalytics, type AnalyticsData } from "@/lib/api";
-import { ArrowLeft, Globe, Monitor, Smartphone, Tablet, Bot, ExternalLink, TrendingUp, BarChart3 } from "lucide-react";
+import { Globe, Monitor, Smartphone, Tablet, Bot, ExternalLink, TrendingUp, BarChart3 } from "lucide-react";
 
 const DEVICE_ICONS: Record<string, typeof Monitor> = {
   desktop: Monitor,
@@ -45,12 +45,6 @@ export function AdminAnalytics() {
     <div className="mx-auto w-full max-w-[960px] py-[24px] sm:py-[36px] px-[16px] sm:px-[20px]">
       {/* 顶栏 */}
       <div className="mb-[28px]">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-[6px] text-[12px] text-muted-foreground/50 hover:text-foreground transition-colors mb-[12px]"
-        >
-          <ArrowLeft className="h-[12px] w-[12px]" />返回仪表盘
-        </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-semibold tracking-[-0.02em]">
             <BarChart3 className="inline h-[20px] w-[20px] mr-[8px] text-cyan-400" />

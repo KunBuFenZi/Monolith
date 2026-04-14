@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { checkAuth, getToken } from "@/lib/api";
-import { ArrowLeft, Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, HardDrive, Download, Rss } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, HardDrive, Download, Rss } from "lucide-react";
 
 type Settings = {
   site_title: string;
@@ -112,9 +112,6 @@ export function AdminSettings() {
       {/* 顶栏 */}
       <div className="mb-[28px] flex items-center justify-between">
         <div className="flex items-center gap-[16px]">
-          <Link href="/admin" className="inline-flex items-center justify-center w-[34px] h-[34px] rounded-lg border border-border/20 text-muted-foreground/50 hover:text-foreground hover:bg-card/40 transition-all">
-            <ArrowLeft className="h-[14px] w-[14px]" />
-          </Link>
           <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-[-0.02em]">站点设置</h1>
         </div>
         <div className="flex items-center gap-[12px]">
