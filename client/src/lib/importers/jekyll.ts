@@ -15,47 +15,49 @@
  */
 import type { ImportResult, PlatformInfo } from "./types";
 import { parseMarkdownFile } from "./frontmatter";
+import type { FrontmatterData } from "./frontmatter";
 
 async function convertJekyllFiles(files: File[]): Promise<ImportResult> {
   const allTags = new Set<string>();
-  const posts: ImportResult["posts"] = [];
+  const parsedPosts = await Promise.all(
+    files.map(async (file) => {
+      if (!file.name.match(/\.(md|markdown|html)$/i)) return null;
 
-  for (const file of files) {
-    if (!file.name.match(/\.(md|markdown|html)$/i)) continue;
+      const text = await file.text();
+      const { frontmatter, content } = parseMarkdownFile(text, file.name);
 
-    const text = await file.text();
-    const { frontmatter, content } = parseMarkdownFile(text, file.name);
+      if ((frontmatter as any).layout === "page") return null;
+      if (!content.trim() && !frontmatter.title) return null;
 
-    // Jekyll 的 layout: page 标记独立页面，跳过
-    if ((frontmatter as any).layout === "page") continue;
+      const tags = [...new Set([...frontmatter.tags, ...frontmatter.categories])];
+      tags.forEach((tag) => allTags.add(tag));
 
-    if (!content.trim() && !frontmatter.title) continue;
+      let slug = frontmatter.slug;
+      if (!slug) {
+        const baseName = file.name.replace(/\.(md|markdown|html)$/i, "");
+        const match = baseName.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
+        slug = match ? match[1] : baseName;
+      }
 
-    const tags = [
-      ...new Set([...frontmatter.tags, ...frontmatter.categories]),
-    ];
-    tags.forEach((t) => allTags.add(t));
+      const frontmatterWithPublished = frontmatter as FrontmatterData & { published?: unknown };
+      const explicitPublished = typeof frontmatterWithPublished.published === "boolean"
+        ? frontmatterWithPublished.published
+        : undefined;
 
-    // Jekyll slug 推导：frontmatter > 文件名（去掉日期前缀）
-    let slug = frontmatter.slug;
-    if (!slug) {
-      const baseName = file.name.replace(/\.(md|markdown|html)$/i, "");
-      // Jekyll 格式：YYYY-MM-DD-slug
-      const match = baseName.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
-      slug = match ? match[1] : baseName;
-    }
+      return {
+        slug,
+        title: frontmatter.title || slug,
+        content,
+        excerpt: frontmatter.excerpt,
+        published: explicitPublished ?? !frontmatter.draft,
+        pinned: false,
+        listed: true,
+        tags,
+      };
+    })
+  );
 
-    posts.push({
-      slug,
-      title: frontmatter.title || slug,
-      content,
-      excerpt: frontmatter.excerpt,
-      published: !frontmatter.draft,
-      pinned: false,
-      listed: true,
-      tags,
-    });
-  }
+  const posts = parsedPosts.filter((post): post is NonNullable<typeof post> => Boolean(post));
 
   const tagNames = Array.from(allTags);
 

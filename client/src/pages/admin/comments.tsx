@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
   fetchAdminComments, approveComment, deleteComment,
   type AdminComment,
@@ -22,13 +22,22 @@ type FilterType = "all" | "pending" | "approved";
 export function AdminComments() {
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<FilterType>("all");
   const [processing, setProcessing] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     document.title = "评论管理 | Monolith";
-    fetchAdminComments().then(setComments).finally(() => setLoading(false));
+    fetchAdminComments()
+      .then((data) => {
+        setComments(data);
+        setError("");
+      })
+      .catch(() => {
+        setComments([]);
+        setError("评论加载失败，请稍后重试。");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleApprove = async (id: number) => {
@@ -76,6 +85,12 @@ export function AdminComments() {
           <p className="mt-[3px] text-[13px] text-muted-foreground/40">审核、管理用户评论</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-[16px] rounded-lg border border-red-500/20 bg-red-500/10 px-[14px] py-[10px] text-[12px] text-red-400">
+          {error}
+        </div>
+      )}
 
       {/* ─── 统计卡片 ─── */}
       <div className="mb-[20px] grid grid-cols-3 gap-[10px]">

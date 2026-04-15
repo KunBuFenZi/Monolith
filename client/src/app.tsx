@@ -42,12 +42,16 @@ function injectHtml(container: HTMLElement, html: string) {
   });
 }
 
+function matchesPathPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 export function App() {
   const [location] = useLocation();
 
   // 路由判断逻辑
-  const isEditorPage = location.startsWith("/admin/editor");
-  const isLoginPage = location.startsWith("/admin/login");
+  const isEditorPage = matchesPathPrefix(location, "/admin/editor");
+  const isLoginPage = matchesPathPrefix(location, "/admin/login");
   const isAdminArea = location.startsWith("/admin") && !isEditorPage && !isLoginPage;
   const isPublicPage = !location.startsWith("/admin");
 

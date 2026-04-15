@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { clearToken } from "@/lib/api";
 import {
@@ -12,7 +12,6 @@ import {
   LogOut,
   ExternalLink,
   Menu,
-  X,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -22,6 +21,19 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
 
   const handleLogout = () => {
     clearToken();
@@ -138,7 +150,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             onClick={() => setMobileMenuOpen(false)} 
           />
           {/* Sidebar Sheet */}
-          <aside className="relative flex-col w-[280px] max-w-[80vw] h-full bg-background shadow-2xl animate-in slide-in-from-left">
+          <aside id="admin-mobile-navigation" className="relative flex-col w-[280px] max-w-[80vw] h-full bg-background shadow-2xl animate-in slide-in-from-left">
             <SidebarContent />
           </aside>
         </div>
@@ -155,6 +167,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="p-2 -mr-2 text-muted-foreground hover:text-foreground"
+            aria-label="打开后台导航菜单"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="admin-mobile-navigation"
           >
             <Menu className="w-5 h-5" />
           </button>

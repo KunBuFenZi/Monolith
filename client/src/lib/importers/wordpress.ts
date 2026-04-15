@@ -42,7 +42,11 @@ function convertWordPressData(xmlText: string): ImportResult {
       const link = item.querySelector("link")?.textContent || "";
       slug = link.replace(/\/$/, "").split("/").pop() || `wp-${Date.now()}`;
     }
-    slug = decodeURIComponent(slug);
+    try {
+      slug = decodeURIComponent(slug);
+    } catch {
+      // 保留原始 slug，避免单条脏数据中断整次导入
+    }
 
     // 内容：优先 content:encoded，后备 excerpt:encoded
     const contentEncoded = getContentEncoded(item);

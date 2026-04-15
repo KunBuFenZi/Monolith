@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
-  fetchMedia, deleteMedia, uploadImage, getToken,
-  localizeAllImages, type LocalizeAllResult,
+  fetchMedia, deleteMedia, uploadImage,
+  localizeAllImages,
   type MediaItem,
 } from "@/lib/api";
 import {
@@ -32,7 +32,6 @@ type ViewMode = "grid" | "list";
 export function AdminMedia() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -207,12 +206,7 @@ export function AdminMedia() {
           setLocalizing(true);
           setMsg(null);
           try {
-            const token = getToken();
-            const res = await fetch("/api/admin/localize-all-images", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const result = await res.json();
+            const result = await localizeAllImages();
             if (result.totalReplaced > 0) {
               setMsg({ text: `已转换 ${result.totalReplaced} 张图片（涉及 ${result.posts.length} 篇文章）${result.totalFailed ? `，${result.totalFailed} 张失败` : ""}`, type: "success" });
               loadMedia();

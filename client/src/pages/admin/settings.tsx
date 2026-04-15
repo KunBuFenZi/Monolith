@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, Link } from "wouter";
 import { getToken } from "@/lib/api";
-import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, HardDrive, Download, Rss } from "lucide-react";
+import { Save, Globe, User, Link2, ToggleLeft, ToggleRight, Code, Rss } from "lucide-react";
 
 type Settings = {
   site_title: string;
@@ -38,7 +37,9 @@ const defaultSettings: Settings = {
 };
 
 type TabId = "general" | "profile" | "social" | "advanced";
-const TABS = [
+type TabDefinition = { id: TabId; label: string; icon: typeof Globe };
+
+const TABS: TabDefinition[] = [
   { id: "general", label: "常规设置", icon: Globe },
   { id: "profile", label: "个人资料", icon: User },
   { id: "social", label: "社交与订阅", icon: Link2 },
@@ -46,12 +47,13 @@ const TABS = [
 ];
 
 export function AdminSettings() {
-  const [, setLocation] = useLocation();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" as "" | "success" | "error" });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [loadError, setLoadError] = useState("");
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     document.title = "站点设置 | Monolith";
@@ -59,16 +61,25 @@ export function AdminSettings() {
   }, []);
 
   const fetchSettings = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/admin/settings", {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
+      if (!res.ok) {
+        throw new Error("设置加载失败");
+      }
       const data = await res.json();
       if (data && Object.keys(data).length > 0) {
         setSettings((prev) => ({ ...prev, ...data }));
       }
-    } catch { /* 使用默认值 */ }
-    setLoading(false);
+      setLoadError("");
+    } catch {
+      setSettings(defaultSettings);
+      setLoadError("设置加载失败，请检查网络或稍后重试。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const showMsg = useCallback((text: string, type: "success" | "error") => {
@@ -100,6 +111,10 @@ export function AdminSettings() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  useEffect(() => {
+    setAvatarError(false);
+  }, [settings.author_avatar]);
+
   const rssEnabled = settings.rss_enabled !== "false";
 
   if (loading) return <div className="py-[60px] text-center text-muted-foreground/40">加载中...</div>;
@@ -119,19 +134,36 @@ export function AdminSettings() {
               {message.type === "success" ? "已保存 ✓" : "失败 ✕"}
             </span>
           )}
-          <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-[6px] h-[36px] px-[16px] rounded-lg bg-foreground text-background text-[13px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity">
+          <button onClick={handleSave} disabled={saving || !!loadError} className="inline-flex items-center gap-[6px] h-[36px] px-[16px] rounded-lg bg-foreground text-background text-[13px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity">
             <Save className="h-[14px] w-[14px]" />{saving ? "保存中..." : "保存更改"}
           </button>
         </div>
       </div>
 
+      {loadError && (
+        <div className="mb-[20px] rounded-lg border border-red-500/20 bg-red-500/10 px-[14px] py-[12px] text-[12px] text-red-400">
+          <div className="flex items-center justify-between gap-[12px]">
+            <span>{loadError}</span>
+            <button onClick={fetchSettings} className="rounded-md border border-red-500/20 px-[10px] py-[4px] text-[11px] text-red-300 transition-colors hover:bg-red-500/10">
+              重试
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-[24px] lg:gap-[36px]">
         {/* 左侧边栏导航 */}
-        <div className="w-full md:w-[220px] shrink-0 flex md:flex-col gap-[4px] overflow-x-auto md:overflow-visible pb-[8px] md:pb-0 scrollbar-hide">
+        <div className="w-full md:w-[220px] shrink-0 flex md:flex-col gap-[4px] overflow-x-auto md:overflow-visible pb-[8px] md:pb-0 scrollbar-hide" role="tablist" aria-label="站点设置分类标签">
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabId)}
+              type="button"
+              role="tab"
+              id={`settings-tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`settings-panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex-shrink-0 w-auto md:w-full flex items-center gap-[10px] px-[14px] py-[10px] md:py-[12px] rounded-lg text-[13px] md:text-[14px] transition-all whitespace-nowrap ${
                 activeTab === tab.id 
                   ? "bg-card border border-border/15 text-foreground font-medium shadow-sm" 
@@ -149,7 +181,7 @@ export function AdminSettings() {
           
           {/* TAB: 常规设置 */}
           {activeTab === "general" && (
-            <div className="space-y-[24px] animate-fade-in">
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-general" aria-labelledby="settings-tab-general">
               <div>
                 <h2 className="text-[16px] font-semibold mb-[4px]">常规设置</h2>
                 <p className="text-[12px] text-muted-foreground/50 mb-[16px]">管理站点的基础身份信息与大纲结构。</p>
@@ -165,7 +197,7 @@ export function AdminSettings() {
 
           {/* TAB: 个人资料 */}
           {activeTab === "profile" && (
-            <div className="space-y-[24px] animate-fade-in">
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-profile" aria-labelledby="settings-tab-profile">
               <div>
                 <h2 className="text-[16px] font-semibold mb-[4px]">个人资料</h2>
                 <p className="text-[12px] text-muted-foreground/50 mb-[16px]">维护博主名片栏目，向访客展示个人特写。</p>
@@ -174,12 +206,12 @@ export function AdminSettings() {
                     <label className="mb-[6px] block text-[11px] font-medium text-muted-foreground/40 uppercase tracking-wider">头像</label>
                     <div className="flex items-start sm:items-center gap-[16px] flex-col sm:flex-row">
                       <div className="relative shrink-0">
-                        {settings.author_avatar ? (
+                        {settings.author_avatar && !avatarError ? (
                           <img
                             src={settings.author_avatar}
                             alt="头像预览"
                             className="h-[64px] w-[64px] rounded-full object-cover border-[3px] border-card shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            onError={() => setAvatarError(true)}
                           />
                         ) : (
                           <div className="flex h-[64px] w-[64px] items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-[24px] font-bold text-cyan-400 border-[3px] border-card shadow-sm">
@@ -210,7 +242,7 @@ export function AdminSettings() {
 
           {/* TAB: 社交与订阅 */}
           {activeTab === "social" && (
-            <div className="space-y-[24px] animate-fade-in">
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-social" aria-labelledby="settings-tab-social">
               <div>
                 <h2 className="text-[16px] font-semibold mb-[4px]">社交网络</h2>
                 <p className="text-[12px] text-muted-foreground/50 mb-[16px]">提供连接外部平台与流量留存的入口。</p>
@@ -261,7 +293,7 @@ export function AdminSettings() {
 
           {/* TAB: 扩展与注入 */}
           {activeTab === "advanced" && (
-            <div className="space-y-[24px] animate-fade-in">
+            <div className="space-y-[24px] animate-fade-in" role="tabpanel" id="settings-panel-advanced" aria-labelledby="settings-tab-advanced">
               <div>
                 <h2 className="text-[16px] font-semibold mb-[4px] flex items-center gap-[6px]">
                   危险操作区 <span className="text-[10px] px-[6px] py-[2px] rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono">Expert</span>
@@ -317,4 +349,3 @@ function SettingField({ label, value, onChange, placeholder, multiline }: {
     </div>
   );
 }
-

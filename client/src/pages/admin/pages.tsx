@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "wouter";
 import { getToken } from "@/lib/api";
 import { Plus, Edit, Trash2, Eye, EyeOff, GripVertical, FileText, Navigation, Save } from "lucide-react";
 import { Link } from "wouter";
@@ -12,13 +11,13 @@ type PageItem = {
 };
 
 export function AdminPages() {
-  const [, setLocation] = useLocation();
   const [pagesList, setPagesList] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PageItem | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" as "" | "success" | "error" });
+  const [loadError, setLoadError] = useState("");
 
   const authHeaders = { Authorization: `Bearer ${getToken()}` };
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
@@ -37,10 +36,16 @@ export function AdminPages() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/pages", { headers: authHeaders });
+      if (!res.ok) throw new Error("加载页面列表失败");
       const data = await res.json();
       setPagesList(Array.isArray(data) ? data : []);
-    } catch { setPagesList([]); }
-    setLoading(false);
+      setLoadError("");
+    } catch {
+      setPagesList([]);
+      setLoadError("独立页列表加载失败，请稍后重试。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const startNew = () => {
@@ -123,6 +128,12 @@ export function AdminPages() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div className="mb-[16px] rounded-lg border border-red-500/20 bg-red-500/10 px-[14px] py-[10px] text-[12px] text-red-400">
+          {loadError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-[16px] lg:grid-cols-[280px_1fr]">
         {/* 左侧：页面列表 */}

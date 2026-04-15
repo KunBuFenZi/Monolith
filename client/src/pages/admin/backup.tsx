@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
 import { getToken } from "@/lib/api";
 import { HardDrive, Cloud, Globe, Download, Trash2, RefreshCw, Shield, Clock, Upload, Eye, FileUp, ChevronDown, ChevronUp, Database, AlertTriangle } from "lucide-react";
 import { platforms, type ImportResult, type PlatformInfo } from "@/lib/importers";
-import { Link } from "wouter";
 
 type R2Backup = { key: string; name: string; size: number; uploaded: string };
 type PreviewData = { version: string; exportedAt: string; postCount: number; tagCount: number; postTitles: { title: string; slug: string }[]; settingsKeys: string[] };
@@ -26,7 +24,6 @@ function timeAgo(d: string): string {
 }
 
 export function AdminBackup() {
-  const [, setLocation] = useLocation();
   const [message, setMessage] = useState({ text: "", type: "" as "" | "success" | "error" });
   const [r2Backups, setR2Backups] = useState<R2Backup[]>([]);
   const [r2Loading, setR2Loading] = useState(false);
@@ -41,24 +38,70 @@ export function AdminBackup() {
 
   // 通用多平台迁移状态
   const migrationFileRef = useRef<HTMLInputElement>(null);
+  const selectedPlatformIdRef = useRef<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformInfo | null>(null);
   const [migrationResult, setMigrationResult] = useState<ImportResult | null>(null);
   const [migrationImporting, setMigrationImporting] = useState(false);
   const [migrationMode, setMigrationMode] = useState<"merge" | "overwrite">("merge");
   const [migrationParsing, setMigrationParsing] = useState(false);
 
+  const platformToneClasses: Record<string, { border: string; background: string; text: string }> = {
+    blue: {
+      border: "border-blue-500/40",
+      background: "bg-blue-500/10",
+      text: "text-blue-400",
+    },
+    orange: {
+      border: "border-orange-500/40",
+      background: "bg-orange-500/10",
+      text: "text-orange-400",
+    },
+    emerald: {
+      border: "border-emerald-500/40",
+      background: "bg-emerald-500/10",
+      text: "text-emerald-400",
+    },
+    pink: {
+      border: "border-pink-500/40",
+      background: "bg-pink-500/10",
+      text: "text-pink-400",
+    },
+    purple: {
+      border: "border-purple-500/40",
+      background: "bg-purple-500/10",
+      text: "text-purple-400",
+    },
+    red: {
+      border: "border-red-500/40",
+      background: "bg-red-500/10",
+      text: "text-red-400",
+    },
+    cyan: {
+      border: "border-cyan-500/40",
+      background: "bg-cyan-500/10",
+      text: "text-cyan-400",
+    },
+  };
+
   // 处理平台文件上传 → 客户端解析 → 展示预览
   const handleMigrationFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !selectedPlatform) return;
+    const platformAtSelection = selectedPlatform;
     setMigrationParsing(true);
     try {
-      const result = await selectedPlatform.parse(Array.from(files));
-      setMigrationResult(result);
+      const result = await platformAtSelection.parse(Array.from(files));
+      setMigrationResult((current) => {
+        if (selectedPlatformIdRef.current !== platformAtSelection.id) {
+          return current;
+        }
+        return result;
+      });
     } catch (err: any) {
-      showMsg(err.message || `${selectedPlatform.name} 数据解析失败`, "error");
+      showMsg(err.message || `${platformAtSelection.name} 数据解析失败`, "error");
+    } finally {
+      setMigrationParsing(false);
     }
-    setMigrationParsing(false);
     if (migrationFileRef.current) migrationFileRef.current.value = "";
   };
 
@@ -315,24 +358,33 @@ export function AdminBackup() {
           <div>
             <p className="text-[11px] text-muted-foreground/35 mb-[8px]">选择来源平台，上传对应格式的导出文件即可一键迁移</p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-[6px]">
-              {platforms.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => { setSelectedPlatform(p); setMigrationResult(null); }}
-                  className={`rounded-lg border p-[10px] text-center transition-all ${
-                    selectedPlatform?.id === p.id
-                      ? `border-${p.color}-500/40 bg-${p.color}-500/10`
-                      : "border-border/20 bg-card/5 hover:bg-card/15 hover:border-border/40"
-                  }`}
-                >
-                  <div className={`text-[13px] font-semibold mb-[2px] ${
-                    selectedPlatform?.id === p.id ? `text-${p.color}-400` : "text-foreground/80"
-                  }`}>{p.name}</div>
-                  <div className="text-[9px] text-muted-foreground/30 leading-tight">
-                    {p.accept.replace(/\./g, "").toUpperCase()}
-                  </div>
-                </button>
-              ))}
+              {platforms.map((p) => {
+                const tone = platformToneClasses[p.color] || platformToneClasses.cyan;
+                const isSelected = selectedPlatform?.id === p.id;
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      selectedPlatformIdRef.current = p.id;
+                      setSelectedPlatform(p);
+                      setMigrationResult(null);
+                    }}
+                    className={`rounded-lg border p-[10px] text-center transition-all ${
+                      isSelected
+                        ? `${tone.border} ${tone.background}`
+                        : "border-border/20 bg-card/5 hover:bg-card/15 hover:border-border/40"
+                    }`}
+                  >
+                    <div className={`text-[13px] font-semibold mb-[2px] ${
+                      isSelected ? tone.text : "text-foreground/80"
+                    }`}>{p.name}</div>
+                    <div className="text-[9px] text-muted-foreground/30 leading-tight">
+                      {p.accept.replace(/\./g, "").toUpperCase()}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -547,13 +599,20 @@ function SectionTitle({ icon: Icon, title }: { icon: React.ElementType; title: s
 function ActionCard({ icon: Icon, color, label, desc, loading, onClick, disabled }: {
   icon: React.ElementType; color: string; label: string; desc: string; loading: boolean; onClick: () => void; disabled: boolean;
 }) {
+  const toneMap: Record<string, { bg: string; text: string }> = {
+    orange: { bg: "bg-orange-500/10", text: "text-orange-400" },
+    blue: { bg: "bg-blue-500/10", text: "text-blue-400" },
+    emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
+  };
+  const tone = toneMap[color] || toneMap.blue;
+
   return (
     <button onClick={onClick} disabled={disabled}
       className="rounded-lg border border-border/25 bg-card/15 p-[14px] text-left hover:bg-card/25 transition-all disabled:opacity-40 card-hover"
     >
       <div className="flex items-center gap-[8px] mb-[6px]">
-        <div className={`flex h-[28px] w-[28px] items-center justify-center rounded-md bg-${color}-500/10`}>
-          <Icon className={`h-[12px] w-[12px] text-${color}-400 ${loading ? "animate-spin" : ""}`} />
+        <div className={`flex h-[28px] w-[28px] items-center justify-center rounded-md ${tone.bg}`}>
+          <Icon className={`h-[12px] w-[12px] ${tone.text} ${loading ? "animate-spin" : ""}`} />
         </div>
         <span className="text-[12px] font-medium">{label}</span>
       </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { fetchAnalytics, type AnalyticsData } from "@/lib/api";
 import { Globe, Monitor, Smartphone, Tablet, Bot, ExternalLink, TrendingUp, BarChart3 } from "lucide-react";
 
@@ -29,12 +28,20 @@ export function AdminAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    document.title = "访客分析 | Monolith";
     setLoading(true);
     fetchAnalytics(days)
-      .then(setData)
-      .catch(() => {})
+      .then((result) => {
+        setData(result);
+        setError("");
+      })
+      .catch(() => {
+        setData(null);
+        setError("访客分析数据加载失败，请稍后重试。");
+      })
       .finally(() => setLoading(false));
   }, [days]);
 
@@ -70,6 +77,8 @@ export function AdminAnalytics() {
 
       {loading ? (
         <div className="text-center text-muted-foreground/40 py-[60px]">加载中...</div>
+      ) : error ? (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-[16px] py-[24px] text-center text-[13px] text-red-400">{error}</div>
       ) : !data ? (
         <div className="text-center text-muted-foreground/40 py-[60px]">暂无数据</div>
       ) : (

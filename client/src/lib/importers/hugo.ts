@@ -24,47 +24,43 @@ import { parseMarkdownFile } from "./frontmatter";
 
 async function convertHugoFiles(files: File[]): Promise<ImportResult> {
   const allTags = new Set<string>();
-  const posts: ImportResult["posts"] = [];
+  const parsedPosts = await Promise.all(
+    files.map(async (file) => {
+      if (!file.name.match(/\.(md|markdown)$/i)) return null;
 
-  for (const file of files) {
-    if (!file.name.match(/\.(md|markdown)$/i)) continue;
+      const relativePath = file.webkitRelativePath || file.name;
+      if (relativePath.endsWith("/_index.md") || file.name === "_index.md") return null;
 
-    const text = await file.text();
+      const text = await file.text();
+      const { frontmatter, content } = parseMarkdownFile(text, relativePath);
+      if (!content.trim() && !frontmatter.title) return null;
 
-    // 跳过 Hugo 的 _index.md（列表页模板）
-    if (file.name === "_index.md" || file.name.endsWith("/_index.md")) continue;
+      const tags = [...new Set([...frontmatter.tags, ...frontmatter.categories])];
+      tags.forEach((tag) => allTags.add(tag));
 
-    const { frontmatter, content } = parseMarkdownFile(text, file.name);
-    if (!content.trim() && !frontmatter.title) continue;
-
-    const tags = [
-      ...new Set([...frontmatter.tags, ...frontmatter.categories]),
-    ];
-    tags.forEach((t) => allTags.add(t));
-
-    // Hugo 的 slug 推导逻辑：frontmatter.slug > 文件名 > 目录名（page bundle）
-    let slug = frontmatter.slug;
-    if (!slug) {
-      if (file.name === "index.md") {
-        // Hugo Page Bundle：slug 来自父目录
-        const parts = (file.webkitRelativePath || file.name).split("/");
-        slug = parts.length >= 2 ? parts[parts.length - 2] : "untitled";
-      } else {
-        slug = file.name.replace(/\.(md|markdown)$/i, "");
+      let slug = frontmatter.slug;
+      if (!slug) {
+        const normalizedPath = relativePath.replace(/\\/g, "/");
+        const pathWithoutExt = normalizedPath.replace(/\.(md|markdown)$/i, "");
+        slug = pathWithoutExt.endsWith("/index")
+          ? pathWithoutExt.slice(0, -"/index".length).split("/").filter(Boolean).pop() || "untitled"
+          : pathWithoutExt.split("/").filter(Boolean).join("-");
       }
-    }
 
-    posts.push({
-      slug,
-      title: frontmatter.title || slug,
-      content,
-      excerpt: frontmatter.excerpt,
-      published: !frontmatter.draft,
-      pinned: false,
-      listed: true,
-      tags,
-    });
-  }
+      return {
+        slug,
+        title: frontmatter.title || slug,
+        content,
+        excerpt: frontmatter.excerpt,
+        published: !frontmatter.draft,
+        pinned: false,
+        listed: true,
+        tags,
+      };
+    })
+  );
+
+  const posts = parsedPosts.filter((post): post is NonNullable<typeof post> => Boolean(post));
 
   const tagNames = Array.from(allTags);
 

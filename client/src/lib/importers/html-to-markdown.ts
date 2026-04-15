@@ -18,6 +18,54 @@ export function htmlToMarkdown(html: string): string {
   return convertNode(root).replace(/\n{3,}/g, "\n\n").trim();
 }
 
+const TRUSTED_IFRAME_HOSTS = new Set([
+  "www.youtube.com",
+  "youtube.com",
+  "youtu.be",
+  "player.bilibili.com",
+  "www.bilibili.com",
+  "bilibili.com",
+  "www.youtube-nocookie.com",
+]);
+
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function safeIframeHtml(el: HTMLElement): string {
+  const src = el.getAttribute("src")?.trim();
+  if (!src) return "";
+
+  try {
+    const url = new URL(src, "https://example.com");
+    if (!TRUSTED_IFRAME_HOSTS.has(url.hostname)) {
+      return "";
+    }
+
+    const attrs = [
+      ["src", url.toString()],
+      ["title", el.getAttribute("title") || "嵌入内容"],
+      ["width", el.getAttribute("width") || "560"],
+      ["height", el.getAttribute("height") || "315"],
+      ["allow", el.getAttribute("allow") || "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"],
+      ["loading", "lazy"],
+      ["referrerpolicy", el.getAttribute("referrerpolicy") || "strict-origin-when-cross-origin"],
+    ];
+
+    const attrText = attrs
+      .map(([name, value]) => `${name}="${escapeHtmlAttr(value)}"`)
+      .join(" ");
+    const allowFullScreen = el.hasAttribute("allowfullscreen") ? " allowfullscreen" : "";
+    return `<iframe ${attrText}${allowFullScreen}></iframe>`;
+  } catch {
+    return "";
+  }
+}
+
 function convertNode(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
     return node.textContent || "";
@@ -79,7 +127,7 @@ function convertNode(node: Node): string {
       if (el.parentElement?.tagName.toLowerCase() === "pre") return children;
       return `\`${children}\``;
     case "mark":
-      return `==${children}==`;
+      return `<mark>${children}</mark>`;
 
     // 链接
     case "a": {
@@ -156,7 +204,7 @@ function convertNode(node: Node): string {
 
     // iframe（嵌入视频等，保留原始 HTML）
     case "iframe":
-      return `\n\n${el.outerHTML}\n\n`;
+      return `\n\n${safeIframeHtml(el)}\n\n`;
 
     // 未知标签，透传子元素内容
     default:

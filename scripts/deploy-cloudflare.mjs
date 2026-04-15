@@ -88,6 +88,10 @@ function detectWorkersUrl(output) {
   return match ? match[0] : "";
 }
 
+function resolvePagesEnv(branch) {
+  return branch === "main" ? "production" : "preview";
+}
+
 const options = parseArgs(process.argv.slice(2));
 
 if (!options.skipMigrate) {
@@ -107,10 +111,12 @@ if (!options.skipClient) {
     process.exit(1);
   }
 
+  const pagesEnv = resolvePagesEnv(options.branch);
+
   runStep(
     "写入 Cloudflare Pages 的 API_BASE",
     "npx",
-    ["wrangler", "pages", "secret", "put", "API_BASE", "--project-name", options.pagesProject],
+    ["wrangler", "pages", "secret", "put", "API_BASE", "--project-name", options.pagesProject, "--env", pagesEnv],
     { input: `${options.apiBase}\n` }
   );
 

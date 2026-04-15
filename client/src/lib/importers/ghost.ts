@@ -18,7 +18,7 @@ import { htmlToMarkdown } from "./html-to-markdown";
 
 function convertGhostData(raw: any): ImportResult {
   // Ghost 数据可能嵌套在 db[0].data 中，也可能直接是根对象
-  const data = raw.db?.[0]?.data || raw.data || raw;
+  const data = raw?.db?.[0]?.data ?? raw?.data ?? raw ?? {};
 
   // 构建 tag 映射
   const tagMap = new Map<string | number, string>();
@@ -128,7 +128,7 @@ function convertGhostData(raw: any): ImportResult {
 
   const warnings: string[] = [];
   // 检查 pages
-  const pageCount = (data.posts || []).filter(
+  const pageCount = (Array.isArray(data.posts) ? data.posts : []).filter(
     (p: any) => p.type === "page"
   ).length;
   if (pageCount > 0) {
@@ -164,8 +164,17 @@ export const ghostPlatform: PlatformInfo = {
   multiple: false,
   color: "purple",
   parse: async (files: File[]) => {
-    const text = await files[0].text();
-    const data = JSON.parse(text);
-    return convertGhostData(data);
+    const file = files[0];
+    if (!file) {
+      throw new Error("请选择 Ghost 导出的 JSON 文件");
+    }
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      return convertGhostData(data);
+    } catch {
+      throw new Error("Ghost 导出文件不是有效的 JSON 格式");
+    }
   },
 };
