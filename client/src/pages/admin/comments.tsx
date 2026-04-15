@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
-  checkAuth, fetchAdminComments, approveComment, deleteComment,
+  fetchAdminComments, approveComment, deleteComment,
   type AdminComment,
 } from "@/lib/api";
 import {
-  ArrowLeft, Check, Trash2, MessageCircle, Clock, CheckCircle2,
+  Check, Trash2, MessageCircle, Clock, CheckCircle2,
   ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,17 +22,23 @@ type FilterType = "all" | "pending" | "approved";
 export function AdminComments() {
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<FilterType>("all");
   const [processing, setProcessing] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     document.title = "评论管理 | Monolith";
-    checkAuth().then((ok) => {
-      if (!ok) { setLocation("/admin/login"); return; }
-      fetchAdminComments().then(setComments).finally(() => setLoading(false));
-    });
-  }, [setLocation]);
+    fetchAdminComments()
+      .then((data) => {
+        setComments(data);
+        setError("");
+      })
+      .catch(() => {
+        setComments([]);
+        setError("评论加载失败，请稍后重试。");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleApprove = async (id: number) => {
     setProcessing(id);
@@ -74,16 +80,17 @@ export function AdminComments() {
     <div className="mx-auto w-full max-w-[960px] py-[32px]">
       {/* ─── 顶栏 ─── */}
       <div className="mb-[24px] flex items-center justify-between">
-        <div className="flex items-center gap-[12px]">
-          <Link href="/admin" className="inline-flex items-center justify-center h-[34px] w-[34px] rounded-md border border-border/30 text-muted-foreground/50 hover:text-foreground hover:border-border/50 transition-colors">
-            <ArrowLeft className="h-[14px] w-[14px]" />
-          </Link>
-          <div>
-            <h1 className="text-[24px] font-semibold tracking-[-0.02em]">评论管理</h1>
-            <p className="mt-[3px] text-[13px] text-muted-foreground/40">审核、管理用户评论</p>
-          </div>
+        <div>
+          <h1 className="text-[24px] font-semibold tracking-[-0.02em]">评论管理</h1>
+          <p className="mt-[3px] text-[13px] text-muted-foreground/40">审核、管理用户评论</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-[16px] rounded-lg border border-red-500/20 bg-red-500/10 px-[14px] py-[10px] text-[12px] text-red-400">
+          {error}
+        </div>
+      )}
 
       {/* ─── 统计卡片 ─── */}
       <div className="mb-[20px] grid grid-cols-3 gap-[10px]">

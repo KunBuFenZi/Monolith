@@ -1,0 +1,245 @@
+/**
+ * 轻量级 HTML → Markdown 转换器
+ * 用于 WordPress（WXR HTML 内容）和 Ghost（HTML 模式）的文章正文转换。
+ * 利用浏览器原生的 DOMParser 实现，零依赖。
+ */
+
+import DOMPurify from "dompurify";
+
+const IMPORT_ALLOWED_TAGS = [
+    "a", "article", "b", "blockquote", "br", "code", "del", "div", "em",
+    "figcaption", "figure", "h1", "h2", "h3", "h4", "h5", "h6", "hr",
+    "i", "iframe", "img", "li", "main", "mark", "ol", "p", "pre",
+    "s", "section", "span", "strike", "strong", "table", "tbody", "td",
+    "tfoot", "th", "thead", "tr", "ul",
+  ];
+
+const IMPORT_ALLOWED_ATTR = [
+    "allow",
+    "allowfullscreen",
+    "alt",
+    "class",
+    "height",
+    "href",
+    "loading",
+    "referrerpolicy",
+    "src",
+    "title",
+    "width",
+  ];
+
+const IMPORT_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [...IMPORT_ALLOWED_TAGS],
+  ALLOWED_ATTR: [...IMPORT_ALLOWED_ATTR],
+  ALLOW_DATA_ATTR: false,
+  ALLOW_UNKNOWN_PROTOCOLS: false,
+};
+
+function convertChildren(nodes: Iterable<Node>): string {
+  return Array.from(nodes).map(convertNode).join("");
+}
+
+export function htmlToMarkdown(html: string): string {
+  if (!html || !html.trim()) return "";
+
+  const sanitizedHtml = DOMPurify.sanitize(html, IMPORT_SANITIZE_CONFIG);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(sanitizedHtml, "text/html");
+  const root = doc.body;
+  if (!root) return sanitizedHtml;
+
+  return convertChildren(root.childNodes).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+const TRUSTED_IFRAME_HOSTS = new Set([
+  "www.youtube.com",
+  "youtube.com",
+  "youtu.be",
+  "player.bilibili.com",
+  "www.bilibili.com",
+  "bilibili.com",
+  "www.youtube-nocookie.com",
+]);
+
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function safeIframeHtml(el: HTMLElement): string {
+  const src = el.getAttribute("src")?.trim();
+  if (!src) return "";
+
+  try {
+    const url = new URL(src, "https://example.com");
+    if (!TRUSTED_IFRAME_HOSTS.has(url.hostname)) {
+      return "";
+    }
+
+    const attrs = [
+      ["src", url.toString()],
+      ["title", el.getAttribute("title") || "嵌入内容"],
+      ["width", el.getAttribute("width") || "560"],
+      ["height", el.getAttribute("height") || "315"],
+      ["allow", el.getAttribute("allow") || "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"],
+      ["loading", "lazy"],
+      ["referrerpolicy", el.getAttribute("referrerpolicy") || "strict-origin-when-cross-origin"],
+    ];
+
+    const attrText = attrs
+      .map(([name, value]) => `${name}="${escapeHtmlAttr(value)}"`)
+      .join(" ");
+    const allowFullScreen = el.hasAttribute("allowfullscreen") ? " allowfullscreen" : "";
+    return `<iframe ${attrText}${allowFullScreen}></iframe>`;
+  } catch {
+    return "";
+  }
+}
+
+function convertNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || "";
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+
+  const el = node as HTMLElement;
+  const tag = el.tagName.toLowerCase();
+  const children = Array.from(el.childNodes).map(convertNode).join("");
+
+  switch (tag) {
+    // 根容器透传
+    case "div":
+    case "article":
+    case "section":
+    case "main":
+    case "span":
+      return children;
+
+    // 段落
+    case "p":
+      return `\n\n${children.trim()}\n\n`;
+
+    // 换行与水平线
+    case "br":
+      return "\n";
+    case "hr":
+      return "\n\n---\n\n";
+
+    // 标题 h1-h6
+    case "h1":
+      return `\n\n# ${children.trim()}\n\n`;
+    case "h2":
+      return `\n\n## ${children.trim()}\n\n`;
+    case "h3":
+      return `\n\n### ${children.trim()}\n\n`;
+    case "h4":
+      return `\n\n#### ${children.trim()}\n\n`;
+    case "h5":
+      return `\n\n##### ${children.trim()}\n\n`;
+    case "h6":
+      return `\n\n###### ${children.trim()}\n\n`;
+
+    // 行内格式
+    case "strong":
+    case "b":
+      return `**${children}**`;
+    case "em":
+    case "i":
+      return `*${children}*`;
+    case "del":
+    case "s":
+    case "strike":
+      return `~~${children}~~`;
+    case "code":
+      // 如果父元素是 pre，不加行内 backtick
+      if (el.parentElement?.tagName.toLowerCase() === "pre") return children;
+      return `\`${children}\``;
+    case "mark":
+      return `<mark>${children}</mark>`;
+
+    // 链接
+    case "a": {
+      const href = el.getAttribute("href") || "";
+      return `[${children}](${href})`;
+    }
+
+    // 图片
+    case "img": {
+      const src = el.getAttribute("src") || "";
+      const alt = el.getAttribute("alt") || "";
+      return `![${alt}](${src})`;
+    }
+
+    // 代码块
+    case "pre": {
+      const codeEl = el.querySelector("code");
+      const lang = codeEl?.className?.match(/language-(\w+)/)?.[1] || "";
+      const code = codeEl?.textContent || el.textContent || "";
+      return `\n\n\`\`\`${lang}\n${code.trim()}\n\`\`\`\n\n`;
+    }
+
+    // 引用块
+    case "blockquote": {
+      const lines = children
+        .trim()
+        .split("\n")
+        .map((l) => `> ${l}`);
+      return `\n\n${lines.join("\n")}\n\n`;
+    }
+
+    // 列表
+    case "ul":
+    case "ol":
+      return `\n\n${children}\n\n`;
+    case "li": {
+      const parent = el.parentElement?.tagName.toLowerCase();
+      if (parent === "ol") {
+        // 有序列表（获取序号）
+        const index = Array.from(el.parentElement!.children).indexOf(el) + 1;
+        return `${index}. ${children.trim()}\n`;
+      }
+      return `- ${children.trim()}\n`;
+    }
+
+    // 表格（简单支持）
+    case "table":
+      return `\n\n${children}\n\n`;
+    case "thead":
+    case "tbody":
+    case "tfoot":
+      return children;
+    case "tr": {
+      const cells = Array.from(el.children).map(
+        (td) => convertNode(td).trim()
+      );
+      const row = `| ${cells.join(" | ")} |`;
+      // 如果是 thead 的第一行，补上分隔行
+      if (el.parentElement?.tagName.toLowerCase() === "thead") {
+        const sep = `| ${cells.map(() => "---").join(" | ")} |`;
+        return `${row}\n${sep}\n`;
+      }
+      return `${row}\n`;
+    }
+    case "th":
+    case "td":
+      return children;
+
+    // figure / figcaption（WordPress 常用）
+    case "figure":
+      return `\n\n${children}\n\n`;
+    case "figcaption":
+      return `\n*${children.trim()}*\n`;
+
+    // iframe（嵌入视频等，保留原始 HTML）
+    case "iframe":
+      return `\n\n${safeIframeHtml(el)}\n\n`;
+
+    // 未知标签，透传子元素内容
+    default:
+      return children;
+  }
+}

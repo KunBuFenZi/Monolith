@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { fetchAnalytics, type AnalyticsData } from "@/lib/api";
-import { ArrowLeft, Globe, Monitor, Smartphone, Tablet, Bot, ExternalLink, TrendingUp, BarChart3 } from "lucide-react";
+import { Globe, Monitor, Smartphone, Tablet, Bot, ExternalLink, TrendingUp, BarChart3 } from "lucide-react";
 
 const DEVICE_ICONS: Record<string, typeof Monitor> = {
   desktop: Monitor,
@@ -29,12 +28,20 @@ export function AdminAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    document.title = "访客分析 | Monolith";
     setLoading(true);
     fetchAnalytics(days)
-      .then(setData)
-      .catch(() => {})
+      .then((result) => {
+        setData(result);
+        setError("");
+      })
+      .catch(() => {
+        setData(null);
+        setError("访客分析数据加载失败，请稍后重试。");
+      })
       .finally(() => setLoading(false));
   }, [days]);
 
@@ -45,12 +52,6 @@ export function AdminAnalytics() {
     <div className="mx-auto w-full max-w-[960px] py-[24px] sm:py-[36px] px-[16px] sm:px-[20px]">
       {/* 顶栏 */}
       <div className="mb-[28px]">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-[6px] text-[12px] text-muted-foreground/50 hover:text-foreground transition-colors mb-[12px]"
-        >
-          <ArrowLeft className="h-[12px] w-[12px]" />返回仪表盘
-        </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-semibold tracking-[-0.02em]">
             <BarChart3 className="inline h-[20px] w-[20px] mr-[8px] text-cyan-400" />
@@ -76,6 +77,8 @@ export function AdminAnalytics() {
 
       {loading ? (
         <div className="text-center text-muted-foreground/40 py-[60px]">加载中...</div>
+      ) : error ? (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-[16px] py-[24px] text-center text-[13px] text-red-400">{error}</div>
       ) : !data ? (
         <div className="text-center text-muted-foreground/40 py-[60px]">暂无数据</div>
       ) : (

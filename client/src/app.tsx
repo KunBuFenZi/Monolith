@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { SearchOverlay } from "@/components/search";
 import { ProtectedRoute } from "@/components/protected-route";
+import { AdminLayout } from "@/components/admin-layout";
 
 // 代码分割 (Code Splitting)
 const HomePage = lazy(() => import("@/pages/home").then((m) => ({ default: m.HomePage })));
@@ -41,9 +42,19 @@ function injectHtml(container: HTMLElement, html: string) {
   });
 }
 
+function matchesPathPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 export function App() {
   const [location] = useLocation();
-  const isEditorPage = location.startsWith("/admin/editor");
+
+  // 路由判断逻辑
+  const isAdminRoot = matchesPathPrefix(location, "/admin");
+  const isEditorPage = matchesPathPrefix(location, "/admin/editor");
+  const isLoginPage = matchesPathPrefix(location, "/admin/login");
+  const isAdminArea = isAdminRoot && !isEditorPage && !isLoginPage;
+  const isPublicPage = !isAdminRoot;
 
   // 注入自定义 header/footer 代码（仅执行一次）
   useEffect(() => {
@@ -69,62 +80,75 @@ export function App() {
 
   return (
     <>
-      <Navbar />
       <SearchOverlay />
-      {isEditorPage ? (
-        /* 编辑器全屏布局 — 不受 main 容器限制 */
-        <main className="mx-auto w-full px-[16px] flex-1 flex flex-col">
-          <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
-            <Switch>
-              <Route path="/admin/editor/:slug?">
-                <ProtectedRoute>
+
+      {/* ======== 1. 公开前台展示区 ======== */}
+      {isPublicPage && (
+        <>
+          <Navbar />
+          <main className="mx-auto w-full max-w-[1440px] px-[20px] lg:px-[40px] flex-1 flex flex-col">
+            <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
+              <Switch>
+                <Route path="/" component={HomePage} />
+                <Route path="/posts/:slug" component={PostPage} />
+                <Route path="/archive" component={ArchivePage} />
+                <Route path="/about" component={AboutPage} />
+                <Route path="/page/:slug" component={DynamicPage} />
+                <Route>
+                  <NotFoundPage />
+                </Route>
+              </Switch>
+            </Suspense>
+          </main>
+          <Footer />
+        </>
+      )}
+
+      {/* ======== 2. 后台全屏编辑器区 ======== */}
+      {isEditorPage && (
+        <ProtectedRoute>
+          <main className="mx-auto w-full px-[16px] flex-1 flex flex-col">
+            <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
+              <Switch>
+                <Route path="/admin/editor/:slug?">
                   <AdminEditor />
-                </ProtectedRoute>
-              </Route>
-            </Switch>
-          </Suspense>
-        </main>
-      ) : (
+                </Route>
+              </Switch>
+            </Suspense>
+          </main>
+        </ProtectedRoute>
+      )}
+
+      {/* ======== 3. 后台登录页 (无外壳独立渲染) ======== */}
+      {isLoginPage && (
         <main className="mx-auto w-full max-w-[1440px] px-[20px] lg:px-[40px] flex-1 flex flex-col">
-          <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
+           <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
             <Switch>
-              <Route path="/" component={HomePage} />
-              <Route path="/posts/:slug" component={PostPage} />
-              <Route path="/archive" component={ArchivePage} />
-              <Route path="/about" component={AboutPage} />
-              {/* 登录页不需要守卫 */}
               <Route path="/admin/login" component={AdminLogin} />
-              {/* 以下所有后台页面均需认证 */}
-              <Route path="/admin/settings">
-                <ProtectedRoute><AdminSettings /></ProtectedRoute>
-              </Route>
-              <Route path="/admin/backup">
-                <ProtectedRoute><AdminBackup /></ProtectedRoute>
-              </Route>
-              <Route path="/admin/pages">
-                <ProtectedRoute><AdminPages /></ProtectedRoute>
-              </Route>
-              <Route path="/admin/comments">
-                <ProtectedRoute><AdminComments /></ProtectedRoute>
-              </Route>
-              <Route path="/admin/media">
-                <ProtectedRoute><AdminMedia /></ProtectedRoute>
-              </Route>
-              <Route path="/admin/analytics">
-                <ProtectedRoute><AdminAnalytics /></ProtectedRoute>
-              </Route>
-              <Route path="/admin">
-                <ProtectedRoute><AdminDashboard /></ProtectedRoute>
-              </Route>
-              <Route path="/page/:slug" component={DynamicPage} />
-              <Route>
-                <NotFoundPage />
-              </Route>
             </Switch>
           </Suspense>
         </main>
       )}
-      {!isEditorPage && <Footer />}
+
+      {/* ======== 4. 核心管理后台区 (Admin App Shell) ======== */}
+      {isAdminArea && (
+        <ProtectedRoute>
+          <AdminLayout>
+            <Suspense fallback={<div className="p-8 flex justify-center text-zinc-500">Loading...</div>}>
+              <Switch>
+                <Route path="/admin/settings"><AdminSettings /></Route>
+                <Route path="/admin/backup"><AdminBackup /></Route>
+                <Route path="/admin/pages"><AdminPages /></Route>
+                <Route path="/admin/comments"><AdminComments /></Route>
+                <Route path="/admin/media"><AdminMedia /></Route>
+                <Route path="/admin/analytics"><AdminAnalytics /></Route>
+                <Route path="/admin"><AdminDashboard /></Route>
+                <Route><NotFoundPage /></Route>
+              </Switch>
+            </Suspense>
+          </AdminLayout>
+        </ProtectedRoute>
+      )}
     </>
   );
 }
