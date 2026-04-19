@@ -107,7 +107,7 @@ function parseYamlFrontmatter(yaml: string): FrontmatterData {
   let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i]; // eslint-disable-line security/detect-object-injection
+    const line = lines[i];
     if (typeof line !== "string") {
       i++;
       continue;
@@ -127,11 +127,11 @@ function parseYamlFrontmatter(yaml: string): FrontmatterData {
       // 检测 block array
       const arrayItems: string[] = [];
       let j = i + 1;
-      let nextLine = lines[j]; // eslint-disable-line security/detect-object-injection
+      let nextLine = lines[j];
       while (typeof nextLine === "string" && /^\s+-\s+/.test(nextLine)) {
         arrayItems.push(nextLine.replace(/^\s+-\s+/, "").trim());
         j++;
-        nextLine = lines[j]; // eslint-disable-line security/detect-object-injection
+        nextLine = lines[j];
       }
       if (arrayItems.length > 0) {
         assignArrayField(result, key, arrayItems);
