@@ -35,7 +35,7 @@ function handleEditorWillMount(monaco: Monaco) {
     colors: {
       // 背景：中性深灰（不带蓝紫调）
       "editor.background": "#1c1c1e",
-      "editor.foreground": "#c8c4be",
+      "editor.foreground": "#e8e4de",
       // 行高亮 — 微暖灰
       "editor.lineHighlightBackground": "#222224",
       "editor.lineHighlightBorder": "#00000000",
@@ -50,8 +50,8 @@ function handleEditorWillMount(monaco: Monaco) {
       "editorWhitespace.foreground": "#2a2a2c",
       "editorIndentGuide.background": "#2a2a2c",
       "editorIndentGuide.activeBackground": "#3a3a3c",
-      "editorLineNumber.foreground": "#3a3a3c",
-      "editorLineNumber.activeForeground": "#6a6a6a",
+      "editorLineNumber.foreground": "#4a4a4c",
+      "editorLineNumber.activeForeground": "#8a8a8a",
       // 括号匹配 — 微金色
       "editorBracketMatch.background": "#e0a84c15",
       "editorBracketMatch.border": "#e0a84c40",
