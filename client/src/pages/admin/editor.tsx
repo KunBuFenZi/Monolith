@@ -35,7 +35,7 @@ function handleEditorWillMount(monaco: Monaco) {
     colors: {
       // 背景：中性深灰（不带蓝紫调）
       "editor.background": "#1c1c1e",
-      "editor.foreground": "#e8e4de",
+      "editor.foreground": "#EBEBEB",
       // 行高亮 — 微暖灰
       "editor.lineHighlightBackground": "#222224",
       "editor.lineHighlightBorder": "#00000000",
